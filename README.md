@@ -4,4 +4,6 @@ This project was started as my RUST exercise to abstract the CANDLE (https://git
 
 The CANDLE ecosystem facilitates terms that refer to candles. So let's call the project LIGHTER, because it helps to turn on the light and is even easier to implement.
 
+An example can be foudn below src/main.rs.
+
 Note: It is by far not production ready and is only used for training purposes. 
