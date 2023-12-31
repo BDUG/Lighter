@@ -4,7 +4,7 @@ This project was started as my RUST exercise to abstract the Rust minimalist ML 
 
 The behaviour is inspired by Python KERAS (https://keras.io) and based on the Rust-Keras-like (https://github.com/AhmedBoin/Rust-Keras-Like) code. 
 
-The Rust Candle ecosystem facilitates terms that refer to candles &#128367;. So let's call the project **Rust Lighter**, because it helps to turn on the candle light and is even easier to implement.
+The Rust Candle ecosystem facilitates terms that refer to candles &#128367;. So let's call the project **Rust Lighter** &#9617;, because it helps to turn on the candle light and is even easier to implement.
 
 An example can be foudn below *src/main.rs*.  
 
