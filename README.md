@@ -1,6 +1,8 @@
 # Rust Lighter
 
-This project was started as my RUST exercise to abstract the Rust Candle framework (https://github.com/huggingface/candle)  and introduce a more convenient way of programming neural network machine learning models. The behaviour is inspired by Python KERAS (https://keras.io) and based on the Rust-Keras-like (https://github.com/AhmedBoin/Rust-Keras-Like).
+This project was started as my RUST exercise to abstract the Rust minimalist ML framework Candle (https://github.com/huggingface/candle) and introduce a more convenient way of programming neural network machine learning models. 
+
+The behaviour is inspired by Python KERAS (https://keras.io) and based on the Rust-Keras-like (https://github.com/AhmedBoin/Rust-Keras-Like) code. 
 
 The Rust Candle ecosystem facilitates terms that refer to candles &#128367;. So let's call the project **Rust Lighter**, because it helps to turn on the candle light and is even easier to implement.
 
