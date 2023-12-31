@@ -1,25 +1,29 @@
 use crate::prelude::*;
-use serde::{Serialize, Deserialize, Deserializer};
 
 pub trait LayerTrait {
-    fn new(perceptron: usize, prev: usize, device: &Device, activation: Activations) -> Self;
+    fn new(perceptrons: usize, previousperceptrons: usize, activation: Activations, device: &Device, varmap : &VarMap, name: String) -> Self;
     fn typ(&self) -> String;
 }
 pub struct Dense {
     pub activation: Activations,
     pub perceptrons: usize,
     pub previousperceptrons: usize,
-
+    pub denselayer: Linear,
     pub device: Device,
+    pub name: String,
 }
 
 impl LayerTrait for Dense {
-    fn new(perceptrons: usize, previousperceptrons: usize, device: &Device, activation: Activations) -> Self {
+    fn new(perceptrons: usize, previousperceptrons: usize, activation: Activations, device: &Device, varmap : &VarMap, name: String) -> Self {
+        let vs = VarBuilder::from_varmap(varmap, DType::F32, &device);
+        let tmp_name = name.clone();
         Self {
-            activation,
-            perceptrons,
-            previousperceptrons,
-            device: device.clone(),
+            activation : activation,
+            perceptrons : perceptrons,
+            previousperceptrons : previousperceptrons,
+            denselayer : linear(previousperceptrons, perceptrons,vs.pp(name)).unwrap(),
+            device : device.clone(),
+            name: tmp_name.clone(),
         }
     }
 
@@ -32,8 +36,7 @@ impl LayerTrait for Dense {
 impl Dense {
     pub fn forward(&self, input: Tensor) -> Tensor {
         // Apply layer calculation
-        let weights = Tensor::ones( (self.perceptrons,self.previousperceptrons), DType::F32, &self.device).unwrap();
-        let fullyconnected = Linear::new(weights, None).forward(&input);
+        let fullyconnected = self.denselayer.forward(&input);
         let fullyconnected_checked = match fullyconnected {
             Ok(fullyconnected) => fullyconnected,
             Err(error) => panic!("{}",error.to_string()),
@@ -55,13 +58,14 @@ impl Dense {
 
 }
 
+/*
 impl Clone for Dense {
     fn clone(&self) -> Dense {        
         let result = Dense::new(
             self.perceptrons, 
             self.previousperceptrons, 
-            &self.device, 
-            self.activation.clone());
+            self.activation.clone(), 
+            &self.device);
         return result;
     }
-}
+}  */

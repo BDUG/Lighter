@@ -1,15 +1,23 @@
 use lighter::prelude::*;
 
 fn main() {
+    let varmap = VarMap::new();
     let dev = candle_core::Device::cuda_if_available(0).unwrap();  
     let x: [[[f32; 2]; 1]; 6] = [ [[1., 2.]] , [[2., 1.]] ,[[3., 4.]], [[5., 6.]], [[5., 5.]] , [[4., 5.]]];
     let y: [[[f32; 1]; 1]; 6] = [ [[3.]], [[3.]], [[7.]], [[11.]] , [[10.]], [[9.]]];
 
-    let mut model = lighter::models::Sequential::new(&[
-        Dense::new(4, 2, &dev, Activations::Relu),
-        Dense::new(2, 4, &dev, Activations::Relu),
-        Dense::new(1, 2, &dev, Activations::Relu),
-    ]);
+    let mut layers = vec![];
+    let mut name1 = String::new();
+    name1.push_str("fc1");
+    layers.push(Dense::new(4, 2, Activations::Relu, &dev, &varmap, name1 ));  
+    let mut name2 = String::new();
+    name2.push_str("fc2");
+    layers.push(Dense::new(2, 4, Activations::Relu, &dev, &varmap, name2 ));
+    let mut name3 = String::new();
+    name3.push_str("fc3");
+    layers.push(Dense::new(1, 2, Activations::Relu, &dev, &varmap, name3 ));
+
+    let mut model = lighter::models::Sequential::new(varmap, layers);
     
     // TODO learnign rate 0.01
     model.compile(Optimizers::SGD, Loss::MSE);

@@ -1,4 +1,3 @@
-use std::any::Any;
 
 use crate::prelude::*;
 
@@ -7,15 +6,18 @@ pub struct Sequential {
     pub layers: Vec<Dense>,
     pub optimizer: Optimizers,
     pub loss: Loss,
+    pub varmap: VarMap,
 }
 
 
 impl Sequential {
-    pub fn new(layers: &[Dense]) -> Self {
+    pub fn new(varmap: VarMap,layers: Vec<Dense>) -> Self {
+
         Self {
-            layers: layers.to_vec(),
+            layers: layers,
             optimizer: Optimizers::None,
             loss: Loss::None,
+            varmap: varmap,
         }
     }
 
@@ -28,7 +30,7 @@ impl Sequential {
         self.loss = loss;
     }
 
-    pub fn fit(&mut self, mut x: Tensor, _y: Tensor, epochs: usize ,_verbose: bool) {
+    pub fn fit(&mut self, x: Tensor, _y: Tensor, epochs: usize ,_verbose: bool) {
         for _i in 0..epochs {
             if _verbose{
                 println!("Epoche {}",_i);
@@ -62,7 +64,6 @@ impl Sequential {
                     Ok(lossed) => lossed,
                     Err(error) => panic!("{}",error.to_string()),
                 };
-                output_checked = lossed_checked.clone();
 
                 let enumvalue: u8 = match self.optimizer {
                     Optimizers::SGD =>  1,
@@ -70,10 +71,9 @@ impl Sequential {
                     Optimizers::None => 0,
                 };
                 // Apply optimizer 
-                let lossed_backup = lossed_checked.clone();
-                let varmap = VarMap::new();
+                // Also see https://github.com/huggingface/candle/issues/1509#issuecomment-1872916766
                 if enumvalue == 1 {
-                    let mut optimized: SGD = candle_nn::SGD::new(varmap.all_vars(), 0.01).unwrap();
+                    let mut optimized: SGD = candle_nn::SGD::new(self.varmap.all_vars(), 0.01).unwrap();
                     optimized.backward_step(&lossed_checked);
                 }
                 else if enumvalue == 2 {
@@ -81,7 +81,7 @@ impl Sequential {
                         lr: 0.0001,
                         ..Default::default()
                     };
-                    let mut optimized: AdamW = candle_nn::AdamW::new(varmap.all_vars(), adamw_params).unwrap();
+                    let mut optimized: AdamW = candle_nn::AdamW::new(self.varmap.all_vars(), adamw_params).unwrap();
                     optimized.backward_step(&lossed_checked);
                 }
             }
