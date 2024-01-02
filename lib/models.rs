@@ -1,14 +1,20 @@
 
-use crate::prelude::*;
 
+use std::cell::Cell;
+use std::{fs, borrow::Borrow};
+use serde::{Serializer};
+use serde_json::Value;
+extern crate lazy_static;
+use crate::prelude::*;
+use std::any::{Any, TypeId};
+use std::any::type_name;
 
 pub struct Sequential {
-    pub layers: Vec<Dense>,
+    pub layers: Vec<Dense> ,
     pub optimizer: Optimizers,
     pub loss: Loss,
     pub varmap: VarMap,
 }
-
 
 impl Sequential {
     pub fn new(varmap: VarMap,layers: Vec<Dense>) -> Self {
@@ -35,14 +41,14 @@ impl Sequential {
             if _verbose{
                 println!("Epoche {}",_i);
             }
-            // x.dims()[1]-1
-            for elementnumber in 0.. 3 {
+            
+            for elementnumber in 0.. x.dims().len() {
                 let mut input_checked = match x.get(elementnumber) {
                     Ok(element) => element,
                     Err(error) => panic!("{}",error.to_string()),
                 };
 
-                let mut output_checked = match _y.get(elementnumber) {
+                let output_checked = match _y.get(elementnumber) {
                     Ok(element) => element,
                     Err(error) => panic!("{}",error.to_string()),
                 };
@@ -96,22 +102,91 @@ impl Sequential {
         return x;
     }
 
-    /*
-    pub fn save(&self, path: &str) {
-        let encoded: Vec<u8> = bincode::serialize(&self.layers).unwrap();
+    pub fn save_model(&self, path: &str) {
         let mut file = File::create(path).unwrap();
-        file.write(&encoded).unwrap();
+        let j = serde_json::to_string(&self).unwrap();
+        file.write(&j.as_bytes()).unwrap();
     }
 
-    pub fn load(&self, path: &str) -> Sequential<Dense>{
-        let mut file = File::open(path).unwrap();
-        let mut decoded = Vec::new();
-        file.read_to_end(&mut decoded).unwrap();
-        let model: Sequential<_> = bincode::deserialize(&decoded[..]).unwrap();
-        println!("model: {:?}", model);
-        model
+
+    fn extractjson_value_u64(&self, elem: &serde_json::Map<String, Value>, key: &str) -> u64{
+        let value: Option<(&String, &Value)> = elem.get_key_value(key);
+        let rst = match value {
+            Some(x) => x.1.clone(),
+            None    => panic!("Unknown state"),
+        };
+        if rst.is_u64() {
+            return u64::from(rst.as_u64().unwrap());
+        }
+        panic!("Unknown type");
     }
-     */
+
+    fn extractjson_value_str(&self, elem: &serde_json::Map<String, Value>, key: &str)-> String {
+        let value: Option<(&String, &Value)> = elem.get_key_value(key);
+        let rst = match value {
+            Some(x) => x.1.clone(),
+            None    => panic!("Unknown state"),
+        };
+        if rst.is_string(){
+            return String::from(rst.as_str().unwrap());
+        }
+        panic!("Unknown type");
+    }
+
+    pub fn load_model(&self, path: &str, device : &Device) -> Sequential {
+        let value = fs::read_to_string(path).unwrap();
+        let json: serde_json::Value =
+            serde_json::from_str(&value).unwrap();
+        
+        let _value_map = match json {
+            Value::Object(ref map) => map,
+            _ => panic!("Unknown state"),
+        };
+        let numberoflayers_string = _value_map.get_key_value("layers");
+        let rst = match numberoflayers_string {
+            Some(x) => x.1,
+            None    => panic!("Unknown state"),
+        };
+        let varmap = VarMap::new();
+        let mut layers = vec![];
+        let layerslist = rst.as_array().unwrap();
+        for i in 0..layerslist.len(){
+            let elem = layerslist.get(i).unwrap().as_object().unwrap();
+            let new_perceptrons = self.extractjson_value_u64(elem, "perceptrons");
+            let new_previousperceptrons = self.extractjson_value_u64(elem, "previousperceptrons");
+            let new_name = self.extractjson_value_str(elem, "name");
+            let tmp_activation = self.extractjson_value_str(elem, "activation");
+            let new_activation = Activations::from_string(tmp_activation.to_string());
+            
+            layers.push(Dense::new(new_perceptrons as usize, new_previousperceptrons as usize, new_activation, device, &self.varmap, new_name));
+        }
+
+        let new_optimizer = self.extractjson_value_str(_value_map, "optimizer");
+        let new_loss = self.extractjson_value_str(_value_map, "loss");
+
+        let mut new_model= Sequential::new(varmap,layers);
+        new_model.compile(Optimizers::from_string(new_optimizer), Loss::from_string(new_loss));
+        return new_model;
+    }
+  
+    pub fn buildname(&self, name: &str,  number: i32) -> String {
+        let mut result = String::from(name);
+        result.push_str(&number.to_string());
+        return result;
+    }
+  
 
 }
 
+impl Serialize for Sequential {
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<<S as Serializer>::Ok, <S as Serializer>::Error>
+    where
+        S: Serializer,
+    {
+        let mut state = serializer.serialize_struct("sequential", 3)?;
+        state.serialize_field("optimizer", &self.optimizer);
+        state.serialize_field("loss", &self.loss);      
+        state.serialize_field("layers", &self.layers);
+        return Ok(state.end().unwrap());
+    }
+}

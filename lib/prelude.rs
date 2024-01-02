@@ -1,10 +1,11 @@
-pub use serde::{Serialize, Deserialize};
+
 pub use std::fs::File;
 pub use std::io::Write;
 pub use std::io::Read;
 
 pub use candle_core::*;
 pub use candle_nn::*;
+pub use serde::ser::{Serialize, Serializer, SerializeStruct};
 
 pub use ndarray::*;
 pub use ndarray::prelude::*;
@@ -22,3 +23,8 @@ pub use crate::activations::*;
 pub use crate::rand_array;
 pub use crate::Model;
 pub use crate::Dense;
+
+
+pub trait StringConstruction {
+    fn from_string(name: String) -> Self;
+}

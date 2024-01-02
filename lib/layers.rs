@@ -58,14 +58,19 @@ impl Dense {
 
 }
 
-/*
-impl Clone for Dense {
-    fn clone(&self) -> Dense {        
-        let result = Dense::new(
-            self.perceptrons, 
-            self.previousperceptrons, 
-            self.activation.clone(), 
-            &self.device);
-        return result;
+
+impl Serialize for Dense {
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<<S as Serializer>::Ok, <S as Serializer>::Error>
+    where
+        S: Serializer,
+    {
+        let mut state = serializer.serialize_struct("Dense", 4)?;
+
+        state.serialize_field("perceptrons", &self.perceptrons)?;
+        state.serialize_field("previousperceptrons", &self.previousperceptrons)?;
+        state.serialize_field("activation", &self.activation)?;
+        state.serialize_field("name", &self.name)?;
+
+        return Ok(state.end().unwrap());
     }
-}  */
+}

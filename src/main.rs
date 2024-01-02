@@ -24,12 +24,28 @@ fn main() {
     model.fit(
         Tensor::new(&x, &dev).unwrap(), 
         Tensor::new(&y, &dev).unwrap(), 
-        10000, 
+        1000, 
         true);
     
     let x_test: [[f32; 2]; 1] = [ [2., 1.] ];
     let prediction = model.predict(Tensor::new(&x_test, &dev).unwrap());
     println!("prediction: {}", prediction);
 
-    //model.save("./test.model");
+    // Save the model
+
+    model.save_model("./test.model");
+
+    // Load the saved model and train
+
+    let dev2 = candle_core::Device::cuda_if_available(0).unwrap();  
+    let mut model2 = model.load_model("./test.model",&dev2);
+    model2.fit(
+        Tensor::new(&x, &dev2).unwrap(), 
+        Tensor::new(&y, &dev2).unwrap(), 
+        1000, 
+        false);
+
+    let prediction2 = model2.predict(Tensor::new(&x_test, &dev2).unwrap());
+    println!("prediction: {}", prediction2);
+ 
 }
