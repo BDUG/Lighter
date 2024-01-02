@@ -19,8 +19,7 @@ fn main() {
 
     let mut model = lighter::models::Sequential::new(varmap, layers);
     
-    // TODO learnign rate 0.01
-    model.compile(Optimizers::SGD, Loss::MSE);
+    model.compile(Optimizers::SGD(0.01), Loss::MSE);
     model.fit(
         Tensor::new(&x, &dev).unwrap(), 
         Tensor::new(&y, &dev).unwrap(), 

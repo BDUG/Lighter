@@ -1,13 +1,9 @@
 
 
-use std::cell::Cell;
-use std::{fs, borrow::Borrow};
-use serde::{Serializer};
+use std::fs;
+use serde::Serializer;
 use serde_json::Value;
-extern crate lazy_static;
 use crate::prelude::*;
-use std::any::{Any, TypeId};
-use std::any::type_name;
 
 pub struct Sequential {
     pub layers: Vec<Dense> ,
@@ -57,7 +53,7 @@ impl Sequential {
                 for layer in self.layers.iter() {
                     input_checked = layer.forward(input_checked).clone();
                 }
-                // TODO: Apply loss
+                // Apply loss
                 let lossed =  match self.loss {
                     Loss::MSE => candle_nn::loss::mse(&input_checked, &output_checked),
                     Loss::NLL => candle_nn::loss::nll(&input_checked, &output_checked),
@@ -72,7 +68,7 @@ impl Sequential {
                 };
 
                 let enumvalue: u8 = match self.optimizer {
-                    Optimizers::SGD =>  1,
+                    Optimizers::SGD(f64) =>  1,
                     Optimizers::Adam => 2,
                     Optimizers::None => 0,
                 };
@@ -121,6 +117,18 @@ impl Sequential {
         panic!("Unknown type");
     }
 
+    fn extractjson_value_f64(&self, elem: &serde_json::Map<String, Value>, key: &str) -> f64{
+        let value: Option<(&String, &Value)> = elem.get_key_value(key);
+        let rst = match value {
+            Some(x) => x.1.clone(),
+            None    => panic!("Unknown state"),
+        };
+        if rst.is_f64() {
+            return f64::from(rst.as_f64().unwrap());
+        }
+        panic!("Unknown type");
+    }
+
     fn extractjson_value_str(&self, elem: &serde_json::Map<String, Value>, key: &str)-> String {
         let value: Option<(&String, &Value)> = elem.get_key_value(key);
         let rst = match value {
@@ -160,12 +168,27 @@ impl Sequential {
             
             layers.push(Dense::new(new_perceptrons as usize, new_previousperceptrons as usize, new_activation, device, &self.varmap, new_name));
         }
-
-        let new_optimizer = self.extractjson_value_str(_value_map, "optimizer");
+        let tmp_optimizer = _value_map.get_key_value("optimizer").unwrap().1;
+        let new_optimizer: Optimizers;
+        if tmp_optimizer.is_object(){
+            // Coudl be a parametrized optimizer such as SGD
+            let tmp_optimizer_obj = tmp_optimizer.as_object().unwrap();
+            if !tmp_optimizer_obj.get_key_value("SGD").is_none() {
+                let learning_rate = self.extractjson_value_f64(tmp_optimizer_obj, "SGD");
+                new_optimizer = Optimizers::SGD(learning_rate);
+            }      
+            else {
+                panic!("undefined optimizer");
+            } 
+        }
+        else {
+            new_optimizer = Optimizers::from_string(self.extractjson_value_str(_value_map, "optimizer"));
+        }
+        
         let new_loss = self.extractjson_value_str(_value_map, "loss");
 
         let mut new_model= Sequential::new(varmap,layers);
-        new_model.compile(Optimizers::from_string(new_optimizer), Loss::from_string(new_loss));
+        new_model.compile(new_optimizer, Loss::from_string(new_loss));
         return new_model;
     }
   

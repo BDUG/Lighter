@@ -4,9 +4,9 @@ use serde::{Serialize, Deserialize};
 use crate::prelude::*;
 
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Optimizers {
-    SGD,
+    SGD(f64),
     Adam,
     None
 }
@@ -15,7 +15,7 @@ pub enum Optimizers {
 impl StringConstruction for Optimizers {
     fn from_string(name: String) -> Self {
         if name.to_lowercase().eq("sgd"){
-            return Optimizers::SGD;
+            return Optimizers::SGD(0.01);
         }
         else if name.to_lowercase().eq("adam"){
             return Optimizers::Adam;
