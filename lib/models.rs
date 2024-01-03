@@ -1,6 +1,6 @@
 
 
-use std::fs;
+use std::{fs, io::BufWriter};
 use serde::Serializer;
 use serde_json::Value;
 use crate::prelude::*;
@@ -96,6 +96,16 @@ impl Sequential {
             x = layer.forward(x);
         }
         return x;
+    }
+
+    // TODO: Write as JSON
+    pub fn save_weights(&self, path: &str) {
+        let _ = self.varmap.save(path);
+    }
+
+    // TODO: Load from JSON
+    pub fn load_weights(&self, path: &str) {
+        let _ = self.varmap.to_owned().load(path);
     }
 
     pub fn save_model(&self, path: &str) {
@@ -200,6 +210,7 @@ impl Sequential {
   
 
 }
+
 
 impl Serialize for Sequential {
     fn serialize<S>(&self, serializer: S) -> std::result::Result<<S as Serializer>::Ok, <S as Serializer>::Error>

@@ -33,11 +33,13 @@ fn main() {
     // Save the model
 
     model.save_model("./test.model");
+    model.save_weights("./test.weights");
 
     // Load the saved model and train
 
     let dev2 = candle_core::Device::cuda_if_available(0).unwrap();  
     let mut model2 = model.load_model("./test.model",&dev2);
+    model2.load_weights("./test.weights");
     model2.fit(
         Tensor::new(&x, &dev2).unwrap(), 
         Tensor::new(&y, &dev2).unwrap(), 
