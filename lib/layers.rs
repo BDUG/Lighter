@@ -5,6 +5,7 @@ use crate::prelude::*;
 
 
 pub struct Conv {
+    kernel: Tensor,
     dimensionality: usize,
     padding: usize,
     stride: usize,
@@ -22,6 +23,11 @@ pub struct Dense {
     pub denselayer: Linear,
     pub device: Device,
     pub name: String,
+}
+
+pub trait ConvLayerTrait {
+    fn new(kernel: Tensor, dimensionality: usize, padding: usize, stride: usize, dilation: usize, groups: usize, device: &Device, varmap : &VarMap, name: String) -> Self;
+    fn typ(&self) -> String;
 }
 
 pub trait DenseLayerTrait {
@@ -48,9 +54,56 @@ impl DenseLayerTrait for Dense {
     }
 }
 
+impl ConvLayerTrait for Conv {
+    fn new(kernel: Tensor, dimensionality: usize, padding: usize, stride: usize, dilation: usize, groups: usize, device: &Device, varmap : &VarMap, name: String) -> Self {
+        let vs = VarBuilder::from_varmap(varmap, DType::F32, &device);
+        let tmp_name = name.clone();
+        Self {
+            kernel: kernel,
+            dimensionality : dimensionality,
+            padding : padding,
+            stride : stride,
+            dilation : dilation,
+            groups : groups,
+            device : device.clone(),
+            name: tmp_name.clone(),
+        }
+    }
+
+    fn typ(&self) -> String {
+        "Conv".into()
+    }
+}
+
+pub trait Trainable {
+    fn forward(&self, input: Tensor) -> Tensor;
+}
+
+impl Conv {
+
+}
+
+impl Trainable for Conv {
+
+    fn forward(&self, input: Tensor) -> Tensor {
+        if self.dimensionality.eq(&(1 as usize)){
+            return input.conv1d(&self.kernel, self.padding, self.stride, self.dilation, self.groups).unwrap();
+        }
+        else if self.dimensionality.eq(&(2 as usize)){
+            return input.conv2d(&self.kernel, self.padding, self.stride, self.dilation, self.groups).unwrap();
+        }        
+        panic!("Dimensionality not implemented");
+    }
+}
 
 impl Dense {
-    pub fn forward(&self, input: Tensor) -> Tensor {
+
+}
+
+
+impl Trainable for Dense {
+    
+    fn forward(&self, input: Tensor) -> Tensor {
         // Apply layer calculation
         let fullyconnected = self.denselayer.forward(&input);
         let fullyconnected_checked = match fullyconnected {
