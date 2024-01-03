@@ -1,9 +1,20 @@
+
+
+#[allow(unused)]
 use crate::prelude::*;
 
-pub trait LayerTrait {
-    fn new(perceptrons: usize, previousperceptrons: usize, activation: Activations, device: &Device, varmap : &VarMap, name: String) -> Self;
-    fn typ(&self) -> String;
+
+pub struct Conv {
+    dimensionality: usize,
+    padding: usize,
+    stride: usize,
+    dilation: usize,
+    groups: usize,
+    pub device: Device,
+    pub name: String,
 }
+
+
 pub struct Dense {
     pub activation: Activations,
     pub perceptrons: usize,
@@ -13,7 +24,12 @@ pub struct Dense {
     pub name: String,
 }
 
-impl LayerTrait for Dense {
+pub trait DenseLayerTrait {
+    fn new(perceptrons: usize, previousperceptrons: usize, activation: Activations, device: &Device, varmap : &VarMap, name: String) -> Self;
+    fn typ(&self) -> String;
+}
+
+impl DenseLayerTrait for Dense {
     fn new(perceptrons: usize, previousperceptrons: usize, activation: Activations, device: &Device, varmap : &VarMap, name: String) -> Self {
         let vs = VarBuilder::from_varmap(varmap, DType::F32, &device);
         let tmp_name = name.clone();

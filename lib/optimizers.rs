@@ -1,8 +1,6 @@
-use serde::{Serialize, Deserialize};
 
 #[allow(unused)]
 use crate::prelude::*;
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Optimizers {
@@ -23,6 +21,6 @@ impl StringConstruction for Optimizers {
         else if name.to_lowercase().eq("none"){
             return Optimizers::None(0.01);
         }
-        panic!("Unknown optimizer")
+        panic!("Unknown optimizer {}",name)
     }
 }

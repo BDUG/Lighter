@@ -1,7 +1,6 @@
 
-use std::fs;
-use serde::Serializer;
-use serde_json::Value;
+
+#[allow(unused)]
 use crate::prelude::*;
 
 pub struct Sequential {
@@ -198,6 +197,14 @@ impl Sequential {
                 let learning_rate = self.extractjson_value_f64(tmp_optimizer_obj, "SGD");
                 new_optimizer = Optimizers::SGD(learning_rate);
             }      
+            else if !tmp_optimizer_obj.get_key_value("Adam").is_none() {
+                let learning_rate = self.extractjson_value_f64(tmp_optimizer_obj, "Adam");
+                new_optimizer = Optimizers::Adam(learning_rate);
+            }         
+            else if !tmp_optimizer_obj.get_key_value("None").is_none() {
+                let learning_rate = self.extractjson_value_f64(tmp_optimizer_obj, "None");
+                new_optimizer = Optimizers::None(learning_rate);
+            }   
             else {
                 panic!("undefined optimizer");
             } 

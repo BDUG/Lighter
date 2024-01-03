@@ -1,11 +1,17 @@
 
-pub use std::fs::File;
 pub use std::io::Write;
 pub use std::io::Read;
 
+
+pub use std::fs;
+pub use std::fs::*;
+
 pub use candle_core::*;
 pub use candle_nn::*;
-pub use serde::ser::{Serialize, Serializer, SerializeStruct};
+
+pub use serde::ser::SerializeStruct;
+pub use serde_json::Value;
+pub use serde::{Serializer, Serialize, Deserialize};
 
 pub use ndarray::*;
 pub use ndarray::prelude::*;
@@ -18,7 +24,6 @@ pub use crate::optimizers::*;
 pub use crate::losses::*;
 pub use crate::utils::*;
 pub use crate::activations::*;
-
 
 pub use crate::rand_array;
 pub use crate::Model;
