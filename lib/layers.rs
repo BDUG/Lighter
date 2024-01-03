@@ -1,5 +1,7 @@
 
 
+use serde::ser::SerializeStructVariant;
+
 #[allow(unused)]
 use crate::prelude::*;
 
@@ -27,12 +29,10 @@ pub struct Dense {
 
 pub trait ConvLayerTrait {
     fn new(kernel: Tensor, dimensionality: usize, padding: usize, stride: usize, dilation: usize, groups: usize, device: &Device, varmap : &VarMap, name: String) -> Self;
-    fn typ(&self) -> String;
 }
 
 pub trait DenseLayerTrait {
     fn new(perceptrons: usize, previousperceptrons: usize, activation: Activations, device: &Device, varmap : &VarMap, name: String) -> Self;
-    fn typ(&self) -> String;
 }
 
 impl DenseLayerTrait for Dense {
@@ -49,9 +49,6 @@ impl DenseLayerTrait for Dense {
         }
     }
 
-    fn typ(&self) -> String {
-        "Dense".into()
-    }
 }
 
 impl ConvLayerTrait for Conv {
@@ -70,13 +67,14 @@ impl ConvLayerTrait for Conv {
         }
     }
 
-    fn typ(&self) -> String {
-        "Conv".into()
-    }
 }
 
 pub trait Trainable {
     fn forward(&self, input: Tensor) -> Tensor;
+    fn typ(&self) -> String;
+    fn inputPerceptrons(&self) -> u32;
+    fn outputPerceptrons(&self) -> u32;
+    fn as_any(&self) -> &dyn Any;
 }
 
 impl Conv {
@@ -94,6 +92,22 @@ impl Trainable for Conv {
         }        
         panic!("Dimensionality not implemented");
     }
+
+    fn typ(&self) -> String {
+        "Conv".into()
+    }
+
+    fn inputPerceptrons(&self) -> u32{
+        return 1;
+    }
+    fn outputPerceptrons(&self) -> u32{
+        return 1;
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+    
 }
 
 impl Dense {
@@ -125,21 +139,60 @@ impl Trainable for Dense {
         return activated_checked;
     }
 
+    fn typ(&self) -> String {
+        "Dense".into()
+    }
+
+    fn inputPerceptrons(&self) -> u32{
+        return self.previousperceptrons as u32;
+    }
+    fn outputPerceptrons(&self) -> u32{
+        return self.perceptrons as u32;
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+    
 }
 
 
-impl Serialize for Dense {
+impl Serialize for dyn Trainable {
+
     fn serialize<S>(&self, serializer: S) -> std::result::Result<<S as Serializer>::Ok, <S as Serializer>::Error>
     where
         S: Serializer,
     {
-        let mut state = serializer.serialize_struct("Dense", 4)?;
-
-        state.serialize_field("perceptrons", &self.perceptrons)?;
-        state.serialize_field("previousperceptrons", &self.previousperceptrons)?;
-        state.serialize_field("activation", &self.activation)?;
-        state.serialize_field("name", &self.name)?;
-
-        return Ok(state.end().unwrap());
+        if self.typ().eq("Dense") {
+            let mut state = serializer.serialize_struct("Dense", 4)?;
+            // One of two ways to downcast in Rust
+            let dense: &Dense = match self.as_any().downcast_ref::<Dense>() {
+                Some(b) => b,
+                None => panic!("Not a Dense type"),
+            };
+            state.serialize_field("perceptrons", &dense.perceptrons)?;
+            state.serialize_field("previousperceptrons", &dense.previousperceptrons)?;
+            state.serialize_field("activation", &dense.activation)?;
+            state.serialize_field("name", &dense.name)?;
+            return Ok(state.end().unwrap());
+        }
+        else if self.typ().eq("Conv") {
+            let mut state = serializer.serialize_struct("Conv", 5)?;
+            // One of two ways to downcast in Rust
+            let conv: &Conv = match self.as_any().downcast_ref::<Conv>() {
+                Some(b) => b,
+                None => panic!("Not a Dense type"),
+            };
+            // TODO
+            //state.serialize_field("kernel", &conv.kernel)?;
+            state.serialize_field("dimensionality", &conv.dimensionality)?;
+            state.serialize_field("padding", &conv.padding)?;
+            state.serialize_field("stride", &conv.stride)?;
+            state.serialize_field("dilation", &conv.dilation)?;
+            state.serialize_field("groups", &conv.groups)?;
+            state.serialize_field("name", &conv.name)?;
+            return Ok(state.end().unwrap());
+        }
+        panic!("Unknown layer type")
     }
 }

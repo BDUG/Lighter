@@ -4,15 +4,14 @@
 use crate::prelude::*;
 
 pub struct Sequential {
-    pub layers: Vec<Dense> ,
+    pub layers: Vec<Box<dyn Trainable>> ,
     pub optimizer: Optimizers,
     pub loss: Loss,
     pub varmap: VarMap,
 }
 
 impl Sequential {
-    pub fn new(varmap: VarMap,layers: Vec<Dense>) -> Self {
-
+    pub fn new(varmap: VarMap,layers: Vec<Box<dyn Trainable>>) -> Self {
         Self {
             layers: layers,
             optimizer: Optimizers::None(0.0),
@@ -27,8 +26,8 @@ impl Sequential {
         res.push_str("-------------------------------------------------------------\n");
         res.push_str("Layer (Type)\t\t Output shape\t\t No.of params\n");
         for layer in self.layers.iter() {
-            let a = layer.previousperceptrons;
-            let b = layer.perceptrons;
+            let a = layer.inputPerceptrons();
+            let b = layer.outputPerceptrons();
             total_param += a + b;
             res.push_str(&format!("{}\t\t\t  (None, {})\t\t  {}\n", layer.typ(), b, a + b));
         }
@@ -176,7 +175,7 @@ impl Sequential {
             None    => panic!("Unknown state"),
         };
         let varmap = VarMap::new();
-        let mut layers = vec![];
+        let mut layers: Vec<Box<dyn Trainable>> = vec![];
         let layerslist = rst.as_array().unwrap();
         for i in 0..layerslist.len(){
             let elem = layerslist.get(i).unwrap().as_object().unwrap();
@@ -186,7 +185,8 @@ impl Sequential {
             let tmp_activation = self.extractjson_value_str(elem, "activation");
             let new_activation = Activations::from_string(tmp_activation.to_string());
             
-            layers.push(Dense::new(new_perceptrons as usize, new_previousperceptrons as usize, new_activation, device, &self.varmap, new_name));
+            let tmp = Box::new(Dense::new(new_perceptrons as usize, new_previousperceptrons as usize, new_activation, device, &self.varmap, new_name));
+            layers.push(tmp);
         }
         let tmp_optimizer = _value_map.get_key_value("optimizer").unwrap().1;
         let new_optimizer: Optimizers;

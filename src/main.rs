@@ -6,16 +6,16 @@ fn main() {
     let x: [[[f32; 2]; 1]; 6] = [ [[1., 2.]] , [[2., 1.]] ,[[3., 4.]], [[5., 6.]], [[5., 5.]] , [[4., 5.]]];
     let y: [[[f32; 1]; 1]; 6] = [ [[3.]], [[3.]], [[7.]], [[11.]] , [[10.]], [[9.]]];
 
-    let mut layers = vec![];
+    let mut layers: Vec<Box<dyn Trainable>> = vec![];
     let mut name1 = String::new();
     name1.push_str("fc1");
-    layers.push(Dense::new(4, 2, Activations::Relu, &dev, &varmap, name1 ));  
+    layers.push(Box::new(Dense::new(4, 2, Activations::Relu, &dev, &varmap, name1 )));  
     let mut name2 = String::new();
     name2.push_str("fc2");
-    layers.push(Dense::new(2, 4, Activations::Relu, &dev, &varmap, name2 ));
+    layers.push(Box::new(Dense::new(2, 4, Activations::Relu, &dev, &varmap, name2 )));
     let mut name3 = String::new();
     name3.push_str("fc3");
-    layers.push(Dense::new(1, 2, Activations::Relu, &dev, &varmap, name3 ));
+    layers.push(Box::new(Dense::new(1, 2, Activations::Relu, &dev, &varmap, name3 )));
 
     let mut model = lighter::models::Sequential::new(varmap, layers);
     
