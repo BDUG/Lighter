@@ -1,6 +1,5 @@
 
-
-use std::{fs, io::BufWriter};
+use std::fs;
 use serde::Serializer;
 use serde_json::Value;
 use crate::prelude::*;
@@ -17,14 +16,26 @@ impl Sequential {
 
         Self {
             layers: layers,
-            optimizer: Optimizers::None,
+            optimizer: Optimizers::None(0.0),
             loss: Loss::None,
             varmap: varmap,
         }
     }
 
     pub fn summary(&self) {
-        // TODO
+        let mut total_param = 0;
+        let mut res = "\nModel Sequential\n".to_string();
+        res.push_str("-------------------------------------------------------------\n");
+        res.push_str("Layer (Type)\t\t Output shape\t\t No.of params\n");
+        for layer in self.layers.iter() {
+            let a = layer.previousperceptrons;
+            let b = layer.perceptrons;
+            total_param += a + b;
+            res.push_str(&format!("{}\t\t\t  (None, {})\t\t  {}\n", layer.typ(), b, a + b));
+        }
+        res.push_str("-------------------------------------------------------------\n");
+        res.push_str(&format!("Total params: {}\n", total_param));
+        println!("{}", res);
     }
 
     pub fn compile(&mut self, optimizer: Optimizers, loss: Loss) {
@@ -67,20 +78,20 @@ impl Sequential {
                     Err(error) => panic!("{}",error.to_string()),
                 };
 
-                let enumvalue: u8 = match self.optimizer {
-                    Optimizers::SGD(f64) =>  1,
-                    Optimizers::Adam => 2,
-                    Optimizers::None => 0,
+                let enumvalue: (f64,u8) = match self.optimizer {
+                    Optimizers::SGD(lrate) => (lrate, 1),
+                    Optimizers::Adam(lrate) => (lrate,2),
+                    Optimizers::None(lrate) => (0.0,0),
                 };
                 // Apply optimizer 
                 // Also see https://github.com/huggingface/candle/issues/1509#issuecomment-1872916766
-                if enumvalue == 1 {
-                    let mut optimized: SGD = candle_nn::SGD::new(self.varmap.all_vars(), 0.01).unwrap();
+                if enumvalue.1 == 1 {
+                    let mut optimized: SGD = candle_nn::SGD::new(self.varmap.all_vars(), enumvalue.0).unwrap();
                     optimized.backward_step(&lossed_checked);
                 }
-                else if enumvalue == 2 {
+                else if enumvalue.1 == 2 {
                     let adamw_params = candle_nn::ParamsAdamW {
-                        lr: 0.0001,
+                        lr: enumvalue.0,
                         ..Default::default()
                     };
                     let mut optimized: AdamW = candle_nn::AdamW::new(self.varmap.all_vars(), adamw_params).unwrap();

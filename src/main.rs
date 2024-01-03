@@ -48,5 +48,7 @@ fn main() {
 
     let prediction2 = model2.predict(Tensor::new(&x_test, &dev2).unwrap());
     println!("prediction: {}", prediction2);
- 
+
+    model2.summary();
+
 }

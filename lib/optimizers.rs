@@ -7,8 +7,8 @@ use crate::prelude::*;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Optimizers {
     SGD(f64),
-    Adam,
-    None
+    Adam(f64),
+    None(f64)
 }
 
 
@@ -18,10 +18,10 @@ impl StringConstruction for Optimizers {
             return Optimizers::SGD(0.01);
         }
         else if name.to_lowercase().eq("adam"){
-            return Optimizers::Adam;
+            return Optimizers::Adam(0.01);
         }
         else if name.to_lowercase().eq("none"){
-            return Optimizers::None;
+            return Optimizers::None(0.01);
         }
         panic!("Unknown optimizer")
     }
