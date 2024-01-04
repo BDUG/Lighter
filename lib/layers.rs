@@ -1,7 +1,5 @@
 
 
-use serde::ser::SerializeStructVariant;
-
 #[allow(unused)]
 use crate::prelude::*;
 
@@ -170,6 +168,7 @@ impl Serialize for dyn Trainable {
                 Some(b) => b,
                 None => panic!("Not a Dense type"),
             };
+            state.serialize_field("type", "Dense")?;
             state.serialize_field("perceptrons", &dense.perceptrons)?;
             state.serialize_field("previousperceptrons", &dense.previousperceptrons)?;
             state.serialize_field("activation", &dense.activation)?;
@@ -183,8 +182,17 @@ impl Serialize for dyn Trainable {
                 Some(b) => b,
                 None => panic!("Not a Dense type"),
             };
-            // TODO
-            //state.serialize_field("kernel", &conv.kernel)?;
+
+            state.serialize_field("type", "Conv")?;
+            let raw_tensor = &conv.kernel;
+            let tensor = raw_tensor.flatten_all().unwrap();
+            let ser_tensor = SerializedTensor {
+                name: "undefined".to_owned(),
+                dimension : raw_tensor.shape().dims().to_vec(),
+                values : tensor.to_vec1::<f32>().unwrap(),
+            };
+
+            state.serialize_field("kernel", &ser_tensor)?;
             state.serialize_field("dimensionality", &conv.dimensionality)?;
             state.serialize_field("padding", &conv.padding)?;
             state.serialize_field("stride", &conv.stride)?;

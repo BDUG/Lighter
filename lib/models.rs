@@ -1,19 +1,7 @@
-
-
-use std::collections::btree_map::Keys;
-
-use ndarray::FixedInitializer;
+use candle_core::cpu_backend::Map1;
 
 #[allow(unused)]
 use crate::prelude::*;
-
-
-#[derive(Serialize, Deserialize)]
-pub struct SerializedTensor {
-    pub name: String,
-    pub dimension : Vec<usize>,
-    pub values : Vec<f32>,
-}
 
 pub struct Sequential {
     pub layers: Vec<Box<dyn Trainable>> ,
@@ -21,7 +9,6 @@ pub struct Sequential {
     pub loss: Loss,
     pub varmap: VarMap,
 }
-
 impl Sequential {
     pub fn new(varmap: VarMap,layers: Vec<Box<dyn Trainable>>) -> Self {
         Self {
@@ -140,7 +127,6 @@ impl Sequential {
         file.write(&j.as_bytes()).unwrap();
     }
 
-    // TODO: Load from JSON
     pub fn load_weights(&self, path: &str, device: &Device) {
         let value = fs::read_to_string(path).unwrap();
 
@@ -208,6 +194,27 @@ impl Sequential {
         panic!("Unknown type");
     }
 
+
+    fn extractjson_value_serializedtensor(&self, elem: &serde_json::Map<String, Value>, key: &str, device: &Device) -> Tensor{
+        let value: Option<(&String, &Value)> = elem.get_key_value(key);
+        let rst = match value {
+            Some(x) => x.1.clone(),
+            None    => panic!("Unknown state"),
+        };
+        let _serializedtensormap = value.unwrap().1.as_object().unwrap();
+        let tmp_dimension = _serializedtensormap.get("dimension").unwrap().as_array().unwrap().to_vec();
+        let tmp_values = _serializedtensormap.get("values").unwrap().as_array().unwrap().to_vec();
+        let dimension = tmp_dimension.iter().map(|x| x.as_f64().unwrap() as usize).collect::<Vec<usize>>();
+        let values = tmp_values.iter().map(|x| x.as_f64().unwrap() as f32).collect::<Vec<f32>>();
+        
+
+        let mut resulttensor = Tensor::new(values, device).unwrap();
+        if dimension.len() > 1{        
+            resulttensor = resulttensor.clone().reshape(dimension.as_slice()).unwrap();
+        }
+        return resulttensor;
+    }
+
     fn extractjson_value_str(&self, elem: &serde_json::Map<String, Value>, key: &str)-> String {
         let value: Option<(&String, &Value)> = elem.get_key_value(key);
         let rst = match value {
@@ -239,19 +246,37 @@ impl Sequential {
         let layerslist = rst.as_array().unwrap();
         for i in 0..layerslist.len(){
             let elem = layerslist.get(i).unwrap().as_object().unwrap();
-            let new_perceptrons = self.extractjson_value_u64(elem, "perceptrons");
-            let new_previousperceptrons = self.extractjson_value_u64(elem, "previousperceptrons");
-            let new_name = self.extractjson_value_str(elem, "name");
-            let tmp_activation = self.extractjson_value_str(elem, "activation");
-            let new_activation = Activations::from_string(tmp_activation.to_string());
-            
-            let tmp = Box::new(Dense::new(new_perceptrons as usize, new_previousperceptrons as usize, new_activation, device, &self.varmap, new_name));
-            layers.push(tmp);
+
+            let new_type = self.extractjson_value_str(elem, "type");
+            if new_type.eq("Dense"){
+                let new_perceptrons = self.extractjson_value_u64(elem, "perceptrons");
+                let new_previousperceptrons = self.extractjson_value_u64(elem, "previousperceptrons");
+                let new_name = self.extractjson_value_str(elem, "name");
+                let tmp_activation = self.extractjson_value_str(elem, "activation");
+                let new_activation = Activations::from_string(tmp_activation.to_string());
+                
+                let tmp = Box::new(Dense::new(new_perceptrons as usize, new_previousperceptrons as usize, new_activation, device, &self.varmap, new_name));
+                layers.push(tmp);
+            }
+            else if new_type.eq("Conv"){
+                let new_tensor = self.extractjson_value_serializedtensor(elem, "kernel", device);
+                let new_dimensionality = self.extractjson_value_u64(elem, "dimensionality") as usize;
+                let new_padding = self.extractjson_value_u64(elem, "padding") as usize;
+                let new_stride = self.extractjson_value_u64(elem, "stride") as usize;
+                let new_dilation = self.extractjson_value_u64(elem, "dilation") as usize;
+                let new_groups = self.extractjson_value_u64(elem, "groups") as usize;
+                let new_name = self.extractjson_value_str(elem, "name");
+
+                let tmp = Box::new(Conv::new(new_tensor, new_dimensionality,new_padding, new_stride, new_dilation, new_groups,device,&self.varmap,new_name));
+                layers.push(tmp);
+            }
+            else{
+                panic!("Unknown layer type")
+            }
         }
         let tmp_optimizer = _value_map.get_key_value("optimizer").unwrap().1;
         let new_optimizer: Optimizers;
         if tmp_optimizer.is_object(){
-            // Coudl be a parametrized optimizer such as SGD
             let tmp_optimizer_obj = tmp_optimizer.as_object().unwrap();
             if !tmp_optimizer_obj.get_key_value("SGD").is_none() {
                 let learning_rate = self.extractjson_value_f64(tmp_optimizer_obj, "SGD");

@@ -24,11 +24,11 @@ pub use crate::optimizers::*;
 pub use crate::losses::*;
 pub use crate::utils::*;
 pub use crate::activations::*;
+pub use crate::serializationtensor::*;
 
 pub use crate::rand_array;
 pub use crate::Model;
 pub use crate::Dense;
-
 
 pub trait StringConstruction {
     fn from_string(name: String) -> Self;

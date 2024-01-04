@@ -6,3 +6,4 @@ pub mod optimizers;
 pub mod losses;
 pub mod utils;
 pub mod activations;
+pub mod serializationtensor;
