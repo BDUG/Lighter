@@ -1,7 +1,19 @@
 
 
+use std::collections::btree_map::Keys;
+
+use ndarray::FixedInitializer;
+
 #[allow(unused)]
 use crate::prelude::*;
+
+
+#[derive(Serialize, Deserialize)]
+pub struct SerializedTensor {
+    pub name: String,
+    pub dimension : Vec<usize>,
+    pub values : Vec<f32>,
+}
 
 pub struct Sequential {
     pub layers: Vec<Box<dyn Trainable>> ,
@@ -107,14 +119,62 @@ impl Sequential {
         return x;
     }
 
-    // TODO: Write as JSON
     pub fn save_weights(&self, path: &str) {
-        let _ = self.varmap.save(path);
+        let mut toserialize : Vec<SerializedTensor> = Vec::new();
+
+        let tmp = self.varmap.data();
+        let data = tmp.lock().unwrap();
+        for element in data.keys(){
+            let raw_tensor = data.get_key_value(element).unwrap().1;
+            let tensor = raw_tensor.flatten_all().unwrap();
+            let ser_tensor = SerializedTensor {
+                name: element.clone(),
+                dimension : raw_tensor.shape().dims().to_vec(),
+                values : tensor.to_vec1::<f32>().unwrap(),
+            };
+            toserialize.push(ser_tensor);
+        }
+      
+        let mut file = File::create(path).unwrap();
+        let j = serde_json::to_string(&toserialize).unwrap();
+        file.write(&j.as_bytes()).unwrap();
     }
 
     // TODO: Load from JSON
-    pub fn load_weights(&self, path: &str) {
-        let _ = self.varmap.to_owned().load(path);
+    pub fn load_weights(&self, path: &str, device: &Device) {
+        let value = fs::read_to_string(path).unwrap();
+
+        let json: serde_json::Value =
+            serde_json::from_str(&value).unwrap();
+        
+        let a: Vec<Value> = json.as_array().unwrap().to_vec();
+        for i in 0..a.len(){
+            let b = a.get(i).unwrap();
+            let c = b.as_object().unwrap();
+            let mut d = c.values().rev();
+            let _values = d.next().unwrap().as_array();
+            let _name = d.next().unwrap().as_str();
+            let _dimension = d.next().unwrap().as_array();
+            let values = match _values {
+                Some(x) => x.clone().iter().map(|x| x.as_f64().unwrap() as f32).collect::<Vec<f32>>(),
+                None    => panic!("Unknown state"),
+            };
+            let name = match _name {
+                Some(x) => x.clone(),
+                None    => panic!("Unknown state"),
+            };
+            /* Construct via tensor
+            let dimension = match _dimension {
+                Some(x) => x.clone().iter().map(|x| x.as_u64().unwrap() as usize).collect::<Vec<usize>>(),
+                None    => panic!("Unknown state"),
+            };
+            let mut resulttensor = Tensor::new(values, &device).unwrap();
+            if dimension.len() > 1{        
+                resulttensor = resulttensor.clone().reshape(dimension.as_slice()).unwrap();
+            }
+            */
+            self.varmap.data().lock().unwrap().insert(name.to_string(),Var::new(values, &device).unwrap());
+        }
     }
 
     pub fn save_model(&self, path: &str) {
@@ -228,6 +288,7 @@ impl Sequential {
   
 
 }
+
 
 
 impl Serialize for Sequential {

@@ -29,4 +29,6 @@ fn main() {
     let x_test: [[f32; 2]; 1] = [ [2., 1.] ];
     let prediction = model.predict(Tensor::new(&x_test, &dev).unwrap());
     println!("prediction: {}", prediction);
+    model.save_weights("model.weights");
+    model.load_weights("model.weights",&dev);
 }
