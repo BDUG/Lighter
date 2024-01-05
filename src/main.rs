@@ -1,4 +1,4 @@
-use lighter::prelude::*;
+use candlelighter::prelude::*;
 
 fn main() {
     let varmap = VarMap::new();
@@ -17,7 +17,7 @@ fn main() {
     name3.push_str("fc3");
     layers.push(Box::new(Dense::new(1, 2, Activations::Relu, &dev, &varmap, name3 )));
 
-    let mut model = lighter::models::Sequential::new(varmap, layers);
+    let mut model = candlelighter::models::Sequential::new(varmap, layers);
     
     model.compile(Optimizers::SGD(0.01), Loss::MSE);
     model.fit(

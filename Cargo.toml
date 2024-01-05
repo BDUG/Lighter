@@ -1,5 +1,5 @@
 [package]
-name = "Candle lighter"
+name = "candlelighter"
 version = "0.1.0"
 edition = "2021"
 authors = ["Dirk Bangel <dirk.bangel@gmx.de>"]
@@ -12,10 +12,10 @@ license = "MPL-2.0"
 license-file = "LICENSE"
 keywords = ["machine","learning","ML","candle","KERAS"]
 categories = ["science", "hardware-support","development-tools","computer-vision","algorithms"]
-exclude = [".github/", ".*", ".vscode/"]
+exclude = [".github/", ".*", ".vscode/","target/*"]
 
 [lib]
-name = "lighter"
+name = "candlelighter"
 path = "./lib/mod.rs"
 
 [dependencies]
