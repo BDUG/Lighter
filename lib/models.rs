@@ -248,6 +248,7 @@ impl Sequential {
             let elem = layerslist.get(i).unwrap().as_object().unwrap();
 
             let new_type = self.extractjson_value_str(elem, "type");
+            // FIXME Push logic to layer itself
             if new_type.eq("Dense"){
                 let new_perceptrons = self.extractjson_value_u64(elem, "perceptrons");
                 let new_previousperceptrons = self.extractjson_value_u64(elem, "previousperceptrons");
@@ -265,6 +266,13 @@ impl Sequential {
                 let new_name = self.extractjson_value_str(elem, "name");
         
                 let tmp = Box::new(Pooling::new(PoolingType::from_string(new_poolingtype), new_kernelsize, new_stride as usize, &device, &self.varmap, new_name));
+                layers.push(tmp);
+            }
+            else if new_type.eq("Normalization"){
+                let new_axis = self.extractjson_value_u64(elem, "axis") as u64;
+                let new_name = self.extractjson_value_str(elem, "name");
+        
+                let tmp = Box::new(Normalization::new( new_axis, &device, &self.varmap, new_name));
                 layers.push(tmp);
             }
             else if new_type.eq("Conv"){

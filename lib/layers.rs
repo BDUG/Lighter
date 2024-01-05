@@ -15,6 +15,7 @@ impl Serialize for dyn Trainable {
     where
         S: Serializer,
     {
+        // FIXME Push logic to layer itself
         if self.typ().eq("Dense") {
             let mut state = serializer.serialize_struct("Dense", 4)?;
             // One of two ways to downcast in Rust
@@ -27,6 +28,18 @@ impl Serialize for dyn Trainable {
             state.serialize_field("previousperceptrons", &dense.previousperceptrons)?;
             state.serialize_field("activation", &dense.activation)?;
             state.serialize_field("name", &dense.name)?;
+            return Ok(state.end().unwrap());
+        }
+        else if self.typ().eq("Normalization") {
+            let mut state = serializer.serialize_struct("Pooling", 5)?;
+            // One of two ways to downcast in Rust
+            let normalization: &Normalization = match self.as_any().downcast_ref::<Normalization>() {
+                Some(b) => b,
+                None => panic!("Not a Normalization type"),
+            };
+            state.serialize_field("type", "Normalization")?;
+            state.serialize_field("poolingtype", &normalization.axis)?;
+            state.serialize_field("name", &normalization.name)?;
             return Ok(state.end().unwrap());
         }
         else if self.typ().eq("Pooling") {

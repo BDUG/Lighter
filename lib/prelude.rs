@@ -24,6 +24,7 @@ pub use crate::models::*;
 pub use crate::layer::convolutionlayer::*;
 pub use crate::layer::denselayer::*;
 pub use crate::layer::poolinglayer::*;
+pub use crate::layer::normalizationlayer::*;
 pub use crate::optimizers::*;
 pub use crate::losses::*;
 pub use crate::utils::*;
