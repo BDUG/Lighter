@@ -1,6 +1,6 @@
 
 #[allow(unused)]
-use lighter::prelude::*;
+use candlelighter::prelude::*;
 
 
 #[test]
@@ -13,7 +13,7 @@ fn test_conv()-> anyhow::Result<()> {
     name4.push_str("conv");
     layers2.push(Box::new(Conv::new(Tensor::new(&z, &dev).unwrap(), 1,2, 3, 4, 5, &dev, &varmap2, name4)));  
     
-    let model2 = lighter::models::Sequential::new(varmap2, layers2);
+    let model2 = candlelighter::models::Sequential::new(varmap2, layers2);
     model2.save_model("model.model");
     model2.load_model("model.model",&dev);
 
@@ -30,7 +30,7 @@ fn test_pooling()-> anyhow::Result<()> {
     name4.push_str("pooling");
     layers2.push(Box::new(Pooling::new(PoolingType::MAX , 1,1 , &dev, &varmap2, name4)));  
     
-    let model2 = lighter::models::Sequential::new(varmap2, layers2);
+    let model2 = candlelighter::models::Sequential::new(varmap2, layers2);
     model2.save_model("model.model");
     model2.load_model("model.model",&dev);
 

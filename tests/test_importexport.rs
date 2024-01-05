@@ -1,7 +1,7 @@
 
 
 #[allow(unused)]
-use lighter::prelude::*;
+use candlelighter::prelude::*;
 
 #[test]
 fn save_model_test() -> anyhow::Result<()> {
@@ -21,7 +21,7 @@ fn save_model_test() -> anyhow::Result<()> {
     name3.push_str("fc3");
     layers.push(Box::new(Dense::new(1, 2, Activations::Relu, &dev, &varmap, name3 )));
 
-    let model = lighter::models::Sequential::new(varmap, layers);
+    let model = candlelighter::models::Sequential::new(varmap, layers);
 
     model.save_model("./test.model");
     model.save_weights("./test.weights");
@@ -54,7 +54,7 @@ fn summary_model_test() -> anyhow::Result<()> {
     name3.push_str("fc3");
     layers.push(Box::new(Dense::new(1, 2, Activations::Relu, &dev, &varmap, name3 )));
 
-    let model = lighter::models::Sequential::new(varmap, layers);
+    let model = candlelighter::models::Sequential::new(varmap, layers);
     model.summary();
 
     anyhow::Ok(())
