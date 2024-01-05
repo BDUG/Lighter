@@ -3,6 +3,13 @@
 #[allow(unused)]
 use crate::prelude::*;
 
+pub struct Pooling {
+    poolingtype: PoolingType,
+    kernelsize: usize,
+    stride: usize,
+    pub device: Device,
+    pub name: String,
+}
 
 pub struct Conv {
     kernel: Tensor,
@@ -23,6 +30,10 @@ pub struct Dense {
     pub denselayer: Linear,
     pub device: Device,
     pub name: String,
+}
+
+pub trait PoolingLayerTrait {
+    fn new(poolingtype: PoolingType, kernelsize: usize, stride: usize, device: &Device, varmap : &VarMap, name: String) -> Self;
 }
 
 pub trait ConvLayerTrait {
@@ -64,6 +75,22 @@ impl ConvLayerTrait for Conv {
             name: tmp_name.clone(),
         }
     }
+
+}
+
+impl PoolingLayerTrait for Pooling {
+    fn new(poolingtype: PoolingType, kernelsize: usize, stride: usize, device: &Device, varmap : &VarMap, name: String) -> Self{
+        let vs = VarBuilder::from_varmap(varmap, DType::F32, &device);
+        let tmp_name = name.clone();
+        Self {
+            poolingtype: poolingtype,
+            kernelsize: kernelsize,
+            stride: stride,
+            device : device.clone(),
+            name: tmp_name.clone(),
+        }
+    }
+
 
 }
 
@@ -155,6 +182,34 @@ impl Trainable for Dense {
 }
 
 
+impl Trainable for Pooling {
+    
+    fn forward(&self, input: Tensor) -> Tensor {
+        let result =  match self.poolingtype {
+            PoolingType::MAX => input.avg_pool2d_with_stride(self.kernelsize, self.stride).unwrap(),
+            PoolingType::AVERAGE => input.max_pool2d_with_stride(self.kernelsize, self.stride).unwrap(),
+        };
+        return result;
+    }
+
+    fn typ(&self) -> String {
+        "Pooling".into()
+    }
+
+    fn inputPerceptrons(&self) -> u32{
+        return 1.0 as u32;
+    }
+    fn outputPerceptrons(&self) -> u32{
+        return 1.0 as u32;
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+    
+}
+
+
 impl Serialize for dyn Trainable {
 
     fn serialize<S>(&self, serializer: S) -> std::result::Result<<S as Serializer>::Ok, <S as Serializer>::Error>
@@ -172,6 +227,20 @@ impl Serialize for dyn Trainable {
             state.serialize_field("perceptrons", &dense.perceptrons)?;
             state.serialize_field("previousperceptrons", &dense.previousperceptrons)?;
             state.serialize_field("activation", &dense.activation)?;
+            state.serialize_field("name", &dense.name)?;
+            return Ok(state.end().unwrap());
+        }
+        else if self.typ().eq("Pooling") {
+            let mut state = serializer.serialize_struct("Pooling", 5)?;
+            // One of two ways to downcast in Rust
+            let dense: &Pooling = match self.as_any().downcast_ref::<Pooling>() {
+                Some(b) => b,
+                None => panic!("Not a Pooling type"),
+            };
+            state.serialize_field("type", "Pooling")?;
+            state.serialize_field("poolingtype", &dense.poolingtype)?;
+            state.serialize_field("kernelsize", &dense.kernelsize)?;
+            state.serialize_field("stride", &dense.stride)?;
             state.serialize_field("name", &dense.name)?;
             return Ok(state.end().unwrap());
         }

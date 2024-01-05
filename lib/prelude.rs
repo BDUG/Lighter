@@ -23,6 +23,7 @@ pub use crate::models::*;
 pub use crate::optimizers::*;
 pub use crate::losses::*;
 pub use crate::utils::*;
+pub use crate::poolingtypes::*;
 pub use crate::activations::*;
 pub use crate::serializationtensor::*;
 

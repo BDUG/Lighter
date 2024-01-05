@@ -258,6 +258,15 @@ impl Sequential {
                 let tmp = Box::new(Dense::new(new_perceptrons as usize, new_previousperceptrons as usize, new_activation, device, &self.varmap, new_name));
                 layers.push(tmp);
             }
+            else if new_type.eq("Pooling"){
+                let new_poolingtype = self.extractjson_value_str(elem, "poolingtype");
+                let new_kernelsize = self.extractjson_value_u64(elem, "kernelsize") as usize;
+                let new_stride = self.extractjson_value_u64(elem, "stride") as usize;
+                let new_name = self.extractjson_value_str(elem, "name");
+        
+                let tmp = Box::new(Pooling::new(PoolingType::from_string(new_poolingtype), new_kernelsize, new_stride as usize, &device, &self.varmap, new_name));
+                layers.push(tmp);
+            }
             else if new_type.eq("Conv"){
                 let new_tensor = self.extractjson_value_serializedtensor(elem, "kernel", device);
                 let new_dimensionality = self.extractjson_value_u64(elem, "dimensionality") as usize;

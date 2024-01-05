@@ -29,5 +29,5 @@ impl StringConstruction for Loss {
             return Loss::None;
         }
         panic!("Unknown loss")
-    }
+    }   
 }
