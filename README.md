@@ -17,6 +17,13 @@ An example can be found below *src/main.rs*.
 |--------------|:-------------:|
 | Dense        |  &#9989;      | 
 | Convolution  |  &#9989;      |   
-| Pooling      |  &#10062;     |   
+| Pooling      |  &#9989;      |   
+| Normalization|  &#10062;     |   
+| Regulation   |  &#10062;     | 
+| Embedding    |  &#10062;     | 
+| Masking      |  &#10062;     | 
+| Reshaping    |  &#10062;     | 
+| Merging      |  &#10062;     | 
+| Activation   |  &#10062;     | 
 | Recurrent    |  &#10062;     |   
 | Attention    |  &#10062;     |   
