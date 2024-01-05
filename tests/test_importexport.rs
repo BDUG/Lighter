@@ -2,7 +2,6 @@
 
 #[allow(unused)]
 use lighter::prelude::*;
-use anyhow::Result;
 
 #[test]
 fn save_model_test() -> anyhow::Result<()> {

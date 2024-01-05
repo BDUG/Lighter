@@ -1,9 +1,6 @@
 
 #[allow(unused)]
 use lighter::prelude::*;
-use anyhow::Result;use candle_core::Tensor;
-use candle_nn::VarMap;
-use lighter::layers::{Trainable, Conv};
 
 
 #[test]

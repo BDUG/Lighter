@@ -19,7 +19,11 @@ pub use ndarray_rand::RandomExt;
 pub use ndarray_rand::rand_distr::Uniform;
 
 pub use crate::layers::*;
+pub use crate::layer::*;
 pub use crate::models::*;
+pub use crate::layer::convolutionlayer::*;
+pub use crate::layer::denselayer::*;
+pub use crate::layer::poolinglayer::*;
 pub use crate::optimizers::*;
 pub use crate::losses::*;
 pub use crate::utils::*;
