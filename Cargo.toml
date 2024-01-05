@@ -2,6 +2,17 @@
 name = "lighter"
 version = "0.1.0"
 edition = "2021"
+authors = ["Dirk Bangel <dirk.bangel@gmx.de>"]
+description = "A Keras like abstraction layer on top of the Rust ML framework candle"
+readme = "README.md"
+documentation = "https://github.com/BDUG/Lighter"
+homepage = "https://github.com/BDUG/Lighter"
+repository= "https://github.com/BDUG/Lighter"
+license = "MPL-2.0"
+license-file = "LICENSE"
+keywords = ["machine","learning","ML","candle","KERAS"]
+categories = ["science", "hardware-support","development-tools","computer-vision","algorithms"]
+exclude = [".github/", ".*", ".vscode/"]
 
 [lib]
 name = "lighter"
