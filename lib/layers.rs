@@ -4,8 +4,8 @@ use crate::prelude::*;
 pub trait Trainable {
     fn forward(&self, input: Tensor) -> Tensor;
     fn typ(&self) -> String;
-    fn inputPerceptrons(&self) -> u32;
-    fn outputPerceptrons(&self) -> u32;
+    fn input_perceptrons(&self) -> u32;
+    fn output_perceptrons(&self) -> u32;
     fn as_any(&self) -> &dyn Any;
 }
 

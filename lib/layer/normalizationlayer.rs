@@ -15,7 +15,6 @@ pub trait NormalizationLayerTrait {
 
 impl NormalizationLayerTrait for Normalization {
     fn new(axis: u64, device: &Device, varmap : &VarMap, name: String) -> Self {
-        let vs = VarBuilder::from_varmap(varmap, DType::F32, &device);
         let tmp_name = name.clone();
         Self {
             axis: axis,
@@ -39,10 +38,10 @@ impl Trainable for Normalization {
         "Normalization".into()
     }
 
-    fn inputPerceptrons(&self) -> u32{
+    fn input_perceptrons(&self) -> u32{
         return 1;
     }
-    fn outputPerceptrons(&self) -> u32{
+    fn output_perceptrons(&self) -> u32{
         return 1;
     }
 

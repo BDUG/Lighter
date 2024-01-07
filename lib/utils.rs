@@ -22,7 +22,7 @@ macro_rules! Model {
             for i in 0..x.len()-1 {
                 layers.push(dense!(x[i], x[i+1], a[i+1]));
             }
-            Sequential::new(layers);
+            SequentialModel::new(layers);
         }
     };
 }
@@ -37,6 +37,3 @@ macro_rules! Dense {
         }
     };
 }
-
-
-

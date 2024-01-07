@@ -6,7 +6,7 @@ The behaviour is inspired by Python KERAS (https://keras.io) and based on the Ru
 
 The Rust Candle ecosystem facilitates terms that refer to candles &#128367;. So let's call the project **Candle Lighter** &#9617;, because it helps to turn on the candle light and is even easier to implement.
 
-An example can be found below *src/main.rs*.  
+Examples can be found below the **examples/** directory.  
 
 To use it as library just call 'cargo add candlelighter'
 
@@ -21,6 +21,7 @@ To use it as library just call 'cargo add candlelighter'
 | Convolution  |  &#9989;      |   
 | Pooling      |  &#9989;      |   
 | Normalization|  &#9989;      |   
+| Flatten      |  &#9989;      |   
 | Regulation   |  &#10062;     | 
 | Embedding    |  &#10062;     | 
 | Masking      |  &#10062;     | 

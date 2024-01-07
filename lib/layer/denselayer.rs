@@ -34,9 +34,11 @@ impl DenseLayerTrait for Dense {
 
 impl Trainable for Dense {
     
+    // .to_scalar::<f64>()
     fn forward(&self, input: Tensor) -> Tensor {
         // Apply layer calculation
-        let fullyconnected = self.denselayer.forward(&input);
+        let new_tensor = input.to_dtype(DType::F32).unwrap();
+        let fullyconnected = self.denselayer.forward(&new_tensor);
         let fullyconnected_checked = match fullyconnected {
             Ok(fullyconnected) => fullyconnected,
             Err(error) => panic!("{}",error.to_string()),
@@ -60,10 +62,10 @@ impl Trainable for Dense {
         "Dense".into()
     }
 
-    fn inputPerceptrons(&self) -> u32{
+    fn input_perceptrons(&self) -> u32{
         return self.previousperceptrons as u32;
     }
-    fn outputPerceptrons(&self) -> u32{
+    fn output_perceptrons(&self) -> u32{
         return self.perceptrons as u32;
     }
 

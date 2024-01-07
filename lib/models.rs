@@ -3,13 +3,13 @@
 #[allow(unused)]
 use crate::prelude::*;
 
-pub struct Sequential {
+pub struct SequentialModel {
     pub layers: Vec<Box<dyn Trainable>> ,
     pub optimizer: Optimizers,
     pub loss: Loss,
     pub varmap: VarMap,
 }
-impl Sequential {
+impl SequentialModel {
     pub fn new(varmap: VarMap,layers: Vec<Box<dyn Trainable>>) -> Self {
         Self {
             layers: layers,
@@ -25,8 +25,8 @@ impl Sequential {
         res.push_str("-------------------------------------------------------------\n");
         res.push_str("Layer (Type)\t\t Output shape\t\t No.of params\n");
         for layer in self.layers.iter() {
-            let a = layer.inputPerceptrons();
-            let b = layer.outputPerceptrons();
+            let a = layer.input_perceptrons();
+            let b = layer.output_perceptrons();
             total_param += a + b;
             res.push_str(&format!("{}\t\t\t  (None, {})\t\t  {}\n", layer.typ(), b, a + b));
         }
@@ -52,15 +52,23 @@ impl Sequential {
                     Err(error) => panic!("{}",error.to_string()),
                 };
 
-                let output_checked = match _y.get(elementnumber) {
+                let mut output_checked = match _y.get(elementnumber) {
                     Ok(element) => element,
                     Err(error) => panic!("{}",error.to_string()),
                 };
                 
-                //let mut input_stack = vec![];
                 for layer in self.layers.iter() {
                     input_checked = layer.forward(input_checked).clone();
                 }
+                if input_checked.shape().dims().len() == 1{
+                    input_checked = input_checked.reshape((1,input_checked.shape().dims().get(0).unwrap().to_owned() )).unwrap();
+                }
+                if output_checked.shape().dims().len() == 1{
+                    output_checked = output_checked.reshape((1,output_checked.shape().dims().get(0).unwrap().to_owned() )).unwrap();
+                }
+                input_checked = input_checked.to_dtype(DType::F32).unwrap();
+                output_checked = output_checked.to_dtype(DType::F32).unwrap();
+
                 // Apply loss
                 let lossed =  match self.loss {
                     Loss::MSE => candle_nn::loss::mse(&input_checked, &output_checked),
@@ -149,16 +157,6 @@ impl Sequential {
                 Some(x) => x.clone(),
                 None    => panic!("Unknown state"),
             };
-            /* Construct via tensor
-            let dimension = match _dimension {
-                Some(x) => x.clone().iter().map(|x| x.as_u64().unwrap() as usize).collect::<Vec<usize>>(),
-                None    => panic!("Unknown state"),
-            };
-            let mut resulttensor = Tensor::new(values, &device).unwrap();
-            if dimension.len() > 1{        
-                resulttensor = resulttensor.clone().reshape(dimension.as_slice()).unwrap();
-            }
-            */
             self.varmap.data().lock().unwrap().insert(name.to_string(),Var::new(values, &device).unwrap());
         }
     }
@@ -227,7 +225,7 @@ impl Sequential {
         panic!("Unknown type");
     }
 
-    pub fn load_model(&self, path: &str, device : &Device) -> Sequential {
+    pub fn load_model(&self, path: &str, device : &Device) -> SequentialModel {
         let value = fs::read_to_string(path).unwrap();
         let json: serde_json::Value =
             serde_json::from_str(&value).unwrap();
@@ -317,7 +315,7 @@ impl Sequential {
         
         let new_loss = self.extractjson_value_str(_value_map, "loss");
 
-        let mut new_model= Sequential::new(varmap,layers);
+        let mut new_model= SequentialModel::new(varmap,layers);
         new_model.compile(new_optimizer, Loss::from_string(new_loss));
         return new_model;
     }
@@ -333,7 +331,7 @@ impl Sequential {
 
 
 
-impl Serialize for Sequential {
+impl Serialize for SequentialModel {
     fn serialize<S>(&self, serializer: S) -> std::result::Result<<S as Serializer>::Ok, <S as Serializer>::Error>
     where
         S: Serializer,
