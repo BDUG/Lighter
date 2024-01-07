@@ -4,7 +4,20 @@ use crate::prelude::*;
 
 pub fn simple_cnn(){
     let varmap = VarMap::new();
-    let dev = candle_core::Device::cuda_if_available(0).unwrap();
+    let dev = candle_core::Device::Cpu;//cuda_if_available(0).unwrap();
+
+    //--------- JUST for testing
+    /*
+    let x: [[f32; 1]; 2] = [ [2.6263], [1.1000] ];
+    let y: [u32; 2] = [8, 5];
+
+    let a = Tensor::new(&x, &dev).unwrap();
+    let b = Tensor::new(&y, &dev).unwrap();
+
+    let rst = candle_nn::loss::nll(&a, &b);
+     */
+    //---------
+
     let images = Tensor::read_npy("data/clock/clock_image.npy").unwrap();
     let results = Tensor::read_npy("data/clock/clock_time.npy").unwrap();
 
@@ -44,13 +57,12 @@ pub fn simple_cnn(){
     layers.push(Box::new(Dense::new(2, 8, Activations::Relu, &dev, &varmap, name7 )));
     
     let mut model = SequentialModel::new(varmap, layers); 
-    model.compile(Optimizers::SGD(0.01), Loss::MSE);
-
+    model.compile(Optimizers::SGD(0.00001), Loss::MSE);
 
     model.fit(
         x_train, 
         results, 
-        3000, 
+        10, 
         true);
 
     let prediction = model.predict(x_testimage);

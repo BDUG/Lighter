@@ -1,5 +1,7 @@
 
 
+use ndarray_rand::rand_distr::num_traits::ToPrimitive;
+
 #[allow(unused)]
 use crate::prelude::*;
 
@@ -45,8 +47,7 @@ impl SequentialModel {
             if _verbose{
                 println!("Epoche {}",_i);
             }
-            
-            for elementnumber in 0.. x.dims().len() {
+            for elementnumber in 0.. x.dims().get(0).unwrap().to_usize().unwrap() {
                 let mut input_checked = match x.get(elementnumber) {
                     Ok(element) => element,
                     Err(error) => panic!("{}",error.to_string()),
@@ -64,11 +65,31 @@ impl SequentialModel {
                     input_checked = input_checked.reshape((1,input_checked.shape().dims().get(0).unwrap().to_owned() )).unwrap();
                 }
                 if output_checked.shape().dims().len() == 1{
-                    output_checked = output_checked.reshape((1,output_checked.shape().dims().get(0).unwrap().to_owned() )).unwrap();
+                    if self.loss.eq(&Loss::MSE){
+                        output_checked = output_checked.reshape((1,output_checked.shape().dims().get(0).unwrap().to_owned() )).unwrap();
+                    }
+                }
+                // ONLY when not MSE
+                if self.loss.ne(&Loss::MSE){
+                    println!("A {} {}",input_checked.shape().dims().len(), input_checked.to_string());
+                    let mut root_array: Vec<Vec<f32>> = Vec::new();
+                    if self.loss.ne(&Loss::MSE) && input_checked.shape().dims().len() == 2{
+                        input_checked = input_checked.flatten_all().unwrap().clone();
+                        for i in 0..input_checked.elem_count() {
+                            let x = input_checked.get(i).unwrap().to_scalar::<f32>().unwrap();
+                            let mut sub_array: Vec<f32> = Vec::new();
+                            sub_array.push(x);
+                            root_array.push(sub_array);
+                        }
+                        println!("");
+                    }
+                    input_checked = Tensor::new(root_array, &input_checked.device()).unwrap();
                 }
                 input_checked = input_checked.to_dtype(DType::F32).unwrap();
                 output_checked = output_checked.to_dtype(DType::F32).unwrap();
 
+                //println!("B {} {}",input_checked.shape().dims().len(), input_checked.to_string());
+                //println!("C {} {}",output_checked.shape().dims().len() , output_checked.to_string());
                 // Apply loss
                 let lossed =  match self.loss {
                     Loss::MSE => candle_nn::loss::mse(&input_checked, &output_checked),
