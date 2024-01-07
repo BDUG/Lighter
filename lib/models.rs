@@ -69,27 +69,13 @@ impl SequentialModel {
                         output_checked = output_checked.reshape((1,output_checked.shape().dims().get(0).unwrap().to_owned() )).unwrap();
                     }
                 }
-                // ONLY when not MSE
+                
                 if self.loss.ne(&Loss::MSE){
-                    println!("A {} {}",input_checked.shape().dims().len(), input_checked.to_string());
-                    let mut root_array: Vec<Vec<f32>> = Vec::new();
-                    if self.loss.ne(&Loss::MSE) && input_checked.shape().dims().len() == 2{
-                        input_checked = input_checked.flatten_all().unwrap().clone();
-                        for i in 0..input_checked.elem_count() {
-                            let x = input_checked.get(i).unwrap().to_scalar::<f32>().unwrap();
-                            let mut sub_array: Vec<f32> = Vec::new();
-                            sub_array.push(x);
-                            root_array.push(sub_array);
-                        }
-                        println!("");
-                    }
-                    input_checked = Tensor::new(root_array, &input_checked.device()).unwrap();
+                    panic!("Not supported so far");
                 }
                 input_checked = input_checked.to_dtype(DType::F32).unwrap();
                 output_checked = output_checked.to_dtype(DType::F32).unwrap();
 
-                //println!("B {} {}",input_checked.shape().dims().len(), input_checked.to_string());
-                //println!("C {} {}",output_checked.shape().dims().len() , output_checked.to_string());
                 // Apply loss
                 let lossed =  match self.loss {
                     Loss::MSE => candle_nn::loss::mse(&input_checked, &output_checked),
@@ -267,7 +253,7 @@ impl SequentialModel {
             let elem = layerslist.get(i).unwrap().as_object().unwrap();
 
             let new_type = self.extractjson_value_str(elem, "type");
-            // FIXME Push logic to layer itself
+            
             if new_type.eq("Dense"){
                 let new_perceptrons = self.extractjson_value_u64(elem, "perceptrons");
                 let new_previousperceptrons = self.extractjson_value_u64(elem, "previousperceptrons");
