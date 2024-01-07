@@ -6,7 +6,7 @@ The behaviour is inspired by Python KERAS (https://keras.io) and based on the Ru
 
 The Rust Candle ecosystem facilitates terms that refer to candles &#128367;. So let's call the project **Candle Lighter** &#9617;, because it helps to turn on the candle light and is even easier to implement.
 
-Examples can be found below the **examples/** directory.  
+Examples can be found below the **lib/examples/** directory.  
 
 To use it as library just call 'cargo add candlelighter'
 
