@@ -15,18 +15,16 @@ To use it as library just call 'cargo add candlelighter'
 
 # Supported Layer types
 
-| Type         |      State    |  
-|--------------|:-------------:|
-| Dense        |  &#9989;      | 
-| Convolution  |  &#9989;      |   
-| Pooling      |  &#9989;      |   
-| Normalization|  &#9989;      |   
-| Flatten      |  &#9989;      |   
-| Regulation   |  &#10062;     | 
-| Embedding    |  &#10062;     | 
-| Masking      |  &#10062;     | 
-| Reshaping    |  &#10062;     | 
-| Merging      |  &#10062;     | 
-| Activation   |  &#10062;     | 
-| Recurrent    |  &#10062;     |   
-| Attention    |  &#10062;     |   
+| Type         |      State    |  Example     | 
+|--------------|:-------------::-------------:|
+| Dense        |  &#9989;      | DNN          |
+| Convolution  |  &#9989;      | CNN          |
+| Pooling      |  &#9989;      |              |
+| Normalization|  &#9989;      |              |
+| Flatten      |  &#9989;      |              | 
+| Recurrent    |  &#x1F3C3     | RNN pending  |  
+| Regulation   |  &#x1F3C3;    |              | 
+| Attention    |  &#10062;     | LLM pending  |
+| Embedding    |  &#10062;     |              |
+| Masking      |  &#10062;     |              |
+| Merging      |  &#10062;     |              | 
