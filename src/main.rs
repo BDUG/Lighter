@@ -6,7 +6,7 @@ use terminal_menu::{menu, label, button, list, scroll, run, mut_menu};
 fn main() {
     let menu = menu(vec![
         label("Select an example ..."),
-        scroll("examples", vec!["Simple DNN", "Simple CNN"]),
+        scroll("examples", vec!["Simple DNN", "Simple CNN","Simple RNN"]),
         button("exit")
     ]);
     run(&menu);
@@ -20,6 +20,9 @@ fn main() {
         }
         else if mm.selection_value("examples").eq("Simple CNN") {
             candlelighter::examples::simple_cnn::simple_cnn();
+        }
+        else if mm.selection_value("examples").eq("Simple RNN") {
+            candlelighter::examples::simple_rnn::simple_rnn();
         }
     }
 }

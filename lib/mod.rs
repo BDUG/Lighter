@@ -12,4 +12,5 @@ pub mod utils;
 pub mod activations;
 pub mod serializationtensor;
 pub mod layers;
+pub mod recurrenttypes;
 
