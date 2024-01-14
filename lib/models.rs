@@ -4,6 +4,7 @@ use ndarray_rand::rand_distr::num_traits::ToPrimitive;
 
 #[allow(unused)]
 use crate::prelude::*;
+use crate::recurrenttypes::RecurrentType;
 
 pub struct SequentialModel {
     pub layers: Vec<Box<dyn Trainable>> ,
@@ -253,7 +254,7 @@ impl SequentialModel {
             let elem = layerslist.get(i).unwrap().as_object().unwrap();
 
             let new_type = self.extractjson_value_str(elem, "type");
-            
+
             if new_type.eq("Dense"){
                 let new_perceptrons = self.extractjson_value_u64(elem, "perceptrons");
                 let new_previousperceptrons = self.extractjson_value_u64(elem, "previousperceptrons");
@@ -271,6 +272,15 @@ impl SequentialModel {
                 let new_name = self.extractjson_value_str(elem, "name");
         
                 let tmp = Box::new(Pooling::new(PoolingType::from_string(new_poolingtype), new_kernelsize, new_stride as usize, &device, &self.varmap, new_name));
+                layers.push(tmp);
+            }
+            else if new_type.eq("Recurrent"){
+                let new_recurrenttype = self.extractjson_value_str(elem, "recurrenttype");
+                let new_indimension = self.extractjson_value_u64(elem, "indimension") as usize;
+                let new_hiddendimension = self.extractjson_value_u64(elem, "hiddendimension") as usize;
+                let new_name = self.extractjson_value_str(elem, "name");
+        
+                let tmp = Box::new(Recurrent::new(RecurrentType::from_string(new_recurrenttype), new_indimension, new_hiddendimension, &device, &self.varmap, new_name));
                 layers.push(tmp);
             }
             else if new_type.eq("Normalization"){
@@ -293,7 +303,7 @@ impl SequentialModel {
                 layers.push(tmp);
             }
             else{
-                panic!("Unknown layer type")
+                panic!("Unknown layer type {}",new_type.to_string())
             }
         }
         let tmp_optimizer = _value_map.get_key_value("optimizer").unwrap().1;

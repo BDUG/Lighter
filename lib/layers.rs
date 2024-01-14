@@ -56,6 +56,20 @@ impl Serialize for dyn Trainable {
             state.serialize_field("name", &dense.name)?;
             return Ok(state.end().unwrap());
         }
+        else if self.typ().eq("Recurrent") {
+            let mut state = serializer.serialize_struct("Recurrent", 5)?;
+            // One of two ways to downcast in Rust
+            let recurrent: &Recurrent = match self.as_any().downcast_ref::<Recurrent>() {
+                Some(b) => b,
+                None => panic!("Not a Recurrent type"),
+            };
+            state.serialize_field("type", "Recurrent")?;
+            state.serialize_field("recurrenttype", &recurrent.recurrenttype)?;
+            state.serialize_field("indimension", &recurrent.indimension)?;
+            state.serialize_field("hiddendimension", &recurrent.hiddendimension)?;
+            state.serialize_field("name", &recurrent.name)?;
+            return Ok(state.end().unwrap());
+        }
         else if self.typ().eq("Conv") {
             let mut state = serializer.serialize_struct("Conv", 5)?;
             // One of two ways to downcast in Rust
@@ -82,6 +96,6 @@ impl Serialize for dyn Trainable {
             state.serialize_field("name", &conv.name)?;
             return Ok(state.end().unwrap());
         }
-        panic!("Unknown layer type")
+        panic!("Unknown layer type {}",self.typ().to_string())
     }
 }
