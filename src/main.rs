@@ -3,6 +3,7 @@
 use candlelighter::prelude::*;
 use terminal_menu::{menu, label, button, list, scroll, run, mut_menu};
     
+
 fn main() {
     let menu = menu(vec![
         label("Select an example ..."),

@@ -31,8 +31,8 @@ fn test_pooling()-> anyhow::Result<()> {
     layers2.push(Box::new(Pooling::new(PoolingType::MAX , 1,1 , &dev, &varmap2, name4)));  
     
     let model2 = SequentialModel::new(varmap2, layers2);
-    model2.save_model("model.model");
-    model2.load_model("model.model",&dev);
+    model2.save_model("model4.model");
+    model2.load_model("model4.model",&dev);
 
     anyhow::Ok(())
 }
