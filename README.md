@@ -22,9 +22,9 @@ To use it as library just call 'cargo add candlelighter'
 | Pooling      |  &#9989;      | -             |
 | Normalization|  &#9989;      | -             |
 | Flatten      |  &#9989;      | -             | 
-| Recurrent    |  &#x1F3C3;    | RNN pending   |  
-| Regulation   |  &#x1F3C3;    | -             | 
-| Attention    |  &#10062;     | LLM pending   |
-| Embedding    |  &#10062;     | -             |
-| Masking      |  &#10062;     | -             |
-| Merging      |  &#10062;     | -             | 
+| Recurrent    |  &#9989;      | RNN 1st throw |  
+| Regulation   |  &#9989;      | -             | 
+| Attention    |  &#x1F3C3;    | LLM pending   |
+| Embedding    |  &#x1F3C3;    | -             |
+| Masking      |  &#x1F3C3;    | -             |
+| Merging      |  &#x1F3C3;    | -             | 
