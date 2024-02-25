@@ -1,1 +1,0 @@
-for<'a> fn(usize, usize, LSTMConfig, VarBuilderArgs<'a, Box<(dyn SimpleBackend + 'a)>>) -> Result<LSTM, candle_core::Error> {candle_nn::lstm}
