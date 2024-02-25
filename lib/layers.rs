@@ -1,3 +1,5 @@
+use flatten::embeddinglayer::Embed;
+
 #[allow(unused)]
 use crate::prelude::*;
 
@@ -68,6 +70,19 @@ impl Serialize for dyn Trainable {
             state.serialize_field("indimension", &recurrent.indimension)?;
             state.serialize_field("hiddendimension", &recurrent.hiddendimension)?;
             state.serialize_field("name", &recurrent.name)?;
+            return Ok(state.end().unwrap());
+        }
+        else if self.typ().eq("Embedding") {
+            let mut state = serializer.serialize_struct("Embedding", 3)?;
+            // One of two ways to downcast in Rust
+            let embedding: &Embed = match self.as_any().downcast_ref::<Embed>() {
+                Some(b) => b,
+                None => panic!("Not a Embedding type"),
+            };
+
+            state.serialize_field("inputdimension", &embedding.inputdimension)?;
+            state.serialize_field("hiddendimension", &embedding.hiddendimension)?;
+            state.serialize_field("name", &embedding.name)?;
             return Ok(state.end().unwrap());
         }
         else if self.typ().eq("Conv") {

@@ -1,0 +1,1 @@
+{"optimizer":{"None":0.0},"loss":"None","layers":[{"type":"Recurrent","recurrenttype":"LSTM","indimension":1,"hiddendimension":1,"name":"recurrent"}]}

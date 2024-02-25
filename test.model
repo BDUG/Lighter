@@ -1,0 +1,1 @@
+{"optimizer":{"None":0.0},"loss":"None","layers":[{"type":"Dense","perceptrons":4,"previousperceptrons":2,"activation":"Relu","name":"fc1"},{"type":"Dense","perceptrons":2,"previousperceptrons":4,"activation":"Relu","name":"fc2"},{"type":"Dense","perceptrons":1,"previousperceptrons":2,"activation":"Relu","name":"fc3"}]}
