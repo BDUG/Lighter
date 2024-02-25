@@ -4,10 +4,13 @@ use candlelighter::prelude::*;
 use candlelighter::recurrenttypes::RecurrentType;
 use terminal_menu::{menu, label, button, list, scroll, run, mut_menu};
 
+
+
 fn main() {
+    //candlelighter::examples::simple_s2s::simple_s2s();
     let menu = menu(vec![
         label("Select an example ..."),
-        scroll("examples", vec!["Simple DNN", "Simple CNN","Simple RNN"]),
+        scroll("examples", vec!["Simple DNN", "Simple CNN","Simple RNN","Simple RNN2","Simple S2S"]),
         button("exit")
     ]);
     run(&menu);
@@ -24,6 +27,12 @@ fn main() {
         }
         else if mm.selection_value("examples").eq("Simple RNN") {
             candlelighter::examples::simple_rnn::simple_rnn();
+        }
+        else if mm.selection_value("examples").eq("Simple RNN2") {
+            candlelighter::examples::simple_rnn::simple_rnn2();
+        }
+        else if mm.selection_value("examples").eq("Simple S2S") {
+            candlelighter::examples::simple_s2s::simple_s2s();
         }
     }
 }

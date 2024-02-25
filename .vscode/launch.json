@@ -11,11 +11,11 @@
             "cargo": {
                 "args": [
                     "build",
-                    "--bin=lighter",
-                    "--package=lighter"
+                    "--bin=candlelighter",
+                    "--package=candlelighter"
                 ],
                 "filter": {
-                    "name": "lighter",
+                    "name": "candlelighter",
                     "kind": "bin"
                 }
             },
@@ -30,11 +30,11 @@
                 "args": [
                     "test",
                     "--no-run",
-                    "--bin=lighter",
-                    "--package=lighter"
+                    "--bin=candlelighter",
+                    "--package=candlelighter"
                 ],
                 "filter": {
-                    "name": "lighter",
+                    "name": "candlelighter",
                     "kind": "bin"
                 }
             },

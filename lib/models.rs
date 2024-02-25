@@ -1,10 +1,12 @@
 
 
+use flatten::embeddinglayer::{Embed, EmbeddingLayerTrait};
 use ndarray_rand::rand_distr::num_traits::ToPrimitive;
 
 #[allow(unused)]
 use crate::prelude::*;
 use crate::recurrenttypes::RecurrentType;
+use crate::embeddingtypes::EmbeddingType;
 
 pub struct SequentialModel {
     pub layers: Vec<Box<dyn Trainable>> ,
@@ -281,6 +283,14 @@ impl SequentialModel {
                 let new_name = self.extractjson_value_str(elem, "name");
         
                 let tmp = Box::new(Recurrent::new(RecurrentType::from_string(new_recurrenttype), new_indimension, new_hiddendimension, &device, &self.varmap, new_name));
+                layers.push(tmp);
+            }
+            else if new_type.eq("Embedding"){
+                let new_inputdimension = self.extractjson_value_u64(elem, "inputdimension") as usize;
+                let new_hiddendimension = self.extractjson_value_u64(elem, "hiddendimension") as usize;
+                let new_name = self.extractjson_value_str(elem, "name");
+        
+                let tmp = Box::new(Embed::new(EmbeddingType::Standard, new_inputdimension, new_hiddendimension, &device, &self.varmap, new_name));
                 layers.push(tmp);
             }
             else if new_type.eq("Normalization"){

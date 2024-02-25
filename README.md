@@ -24,7 +24,7 @@ To use it as library just call 'cargo add candlelighter'
 | Flatten      |  &#9989;      | -             | 
 | Recurrent    |  &#9989;      | RNN 1st throw |  
 | Regulation   |  &#9989;      | -             | 
-| Embedding    |  &#x1F3C3;    | S2S pending   |
-| Attention    |  &#x1F3C3;    | -             |
+| Embedding    |  &#9989;      | S2S           |
+| Attention    |  &#x1F3C3;    | pending       |
 | Masking      |  &#x1F3C3;    | -             |
 | Merging      |  &#x1F3C3;    | -             | 
