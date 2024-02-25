@@ -1,1 +1,0 @@
-{"rustc":12595737599860400134,"features":"","target":0,"profile":0,"path":0,"deps":[[5110112487062315290,"build_script_build",false,2647580740025593226]],"local":[{"RerunIfChanged":{"output":"debug/build/candle-ext-0f1f7eb6139477f6/output","paths":["build.rs","src/kernels/"]}}],"rustflags":[],"metadata":0,"config":0,"compile_kind":0}
