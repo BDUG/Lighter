@@ -1,1 +1,0 @@
-{"optimizer":{"None":0.0},"loss":"None","layers":[{"type":"Pooling","poolingtype":"MAX","kernelsize":1,"stride":1,"name":"pooling"}]}

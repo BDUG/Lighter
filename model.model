@@ -1,1 +1,0 @@
-{"optimizer":{"None":0.0},"loss":"None","layers":[{"type":"Conv","kernel":{"name":"undefined","dimension":[6,1,2],"values":[1.0,2.0,2.0,1.0,3.0,4.0,5.0,6.0,5.0,5.0,4.0,5.0]},"dimensionality":1,"padding":2,"stride":3,"dilation":4,"groups":5,"name":"conv"}]}
