@@ -1,5 +1,15 @@
-Both embedding ( e.g., Word2Vec) and encoding  (e.g., Bag of words) is about representing data in a different space. Embedding isually talks about continous vector spaces (aka sequences), capturing semantic relationships, where encoding also includes compressing and dimensional reduction. 
+Both embedding ( e.g., Word2Vec) and encoding (e.g., Bag of words) is about representing data in a different space. Embedding isually talks about continous vector spaces (aka sequences), usually capturing semantic relationships, where encoding also includes compressing and dimensional reduction. 
 
-For *candlelighter* it is target to introduce processing pipelines allowing to formalizing the preprocesing and the finalizing embedding step. The embedding step maps each dimension element from the input vector to the target, resulting vector, while each resultign vector often has a higher dimensionality. 
+The following embeddings shall be integrated from [Candle](https://github.com/huggingface/candle):
 
-The preprocessing usually covers multiple steps such as e.g., vectorization, dimensional reduction and positional enconding. Technically it is like the sequentional model, but without the backward step support. 
+
+| Type                  | From where                                                                                        |  
+|-----------------------|---------------------------------------------------------------------------------------------------|
+| Embedding         | Standard layer | 
+| Timestep Embedding         | [here](https://github.com/huggingface/candle/blob/main/candle-transformers/src/models/stable_diffusion/embeddings.rs) for relative (aka local) positional encoding |  
+| Positional Embedding         | [here](https://github.com/huggingface/candle/blob/0c5eecbc0faa7e642210800c735ad8137d5a9e08/candle-transformers/src/models/segment_anything/prompt_encoder.rs#L25) for absolute positional encoding | 
+| Falcon Rotary Positional Embedding         | [here](https://github.com/huggingface/candle/blob/0c5eecbc0faa7e642210800c735ad8137d5a9e08/candle-transformers/src/models/falcon.rs#L163) for absolute and relative positional encoding | 
+| Sinusoidal Positional Embedding         | [here](https://github.com/huggingface/candle/blob/0c5eecbc0faa7e642210800c735ad8137d5a9e08/candle-transformers/src/models/marian.rs#L108) for absolute and relative positional encoding | 
+
+
+
