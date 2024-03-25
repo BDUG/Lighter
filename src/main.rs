@@ -1,4 +1,6 @@
 
+use std::env;
+
 #[allow(unused)]
 use candlelighter::prelude::*;
 use candlelighter::recurrenttypes::RecurrentType;
@@ -7,10 +9,12 @@ use terminal_menu::{menu, label, button, list, scroll, run, mut_menu};
 
 
 fn main() {
-    //candlelighter::examples::simple_s2s::simple_s2s();
+    //env::set_var("RUST_BACKTRACE", "1");
+
+
     let menu = menu(vec![
         label("Select an example ..."),
-        scroll("examples", vec!["Simple DNN", "Simple CNN","Simple RNN","Simple RNN2","Simple S2S"]),
+        scroll("examples", vec!["Simple DNN", "Simple CNN","Simple RNN","Simple RNN2","Simple S2S","Simple TNN"]),
         button("exit")
     ]);
     run(&menu);
@@ -33,6 +37,9 @@ fn main() {
         }
         else if mm.selection_value("examples").eq("Simple S2S") {
             candlelighter::examples::simple_s2s::simple_s2s();
+        }
+        else if mm.selection_value("examples").eq("Simple TNN") {
+            candlelighter::examples::simple_tnn::simple_tnn();
         }
     }
 }
