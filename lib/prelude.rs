@@ -18,6 +18,8 @@ pub use ndarray::prelude::*;
 pub use ndarray_rand::RandomExt;
 pub use ndarray_rand::rand_distr::Uniform;
 
+pub use candle_transformers::models::wuerstchen::attention_processor::*;
+
 pub use crate::examples::*;
 pub use crate::layer::*;
 
@@ -36,6 +38,7 @@ pub use crate::poolingtypes::*;
 pub use crate::convolutiontypes::*;
 pub use crate::activations::*;
 pub use crate::serializationtensor::*;
+pub use crate::layer::selfattention::*;
 
 pub use crate::rand_array;
 pub use crate::Model;

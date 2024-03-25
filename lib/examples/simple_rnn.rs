@@ -30,7 +30,7 @@ pub fn simple_rnn() {
         2000, 
         true);
     
-    let x_test: [[f32; 2]; 1] = [ [2., 1.] ];
+    let x_test: [[f32; 2]; 1] = [ [1., 1.] ];
     let prediction = model.predict(Tensor::new(&x_test, &dev).unwrap());
     println!("prediction: {}", prediction);
 }

@@ -69,7 +69,31 @@ impl SequentialModel {
                 }
                 if output_checked.shape().dims().len() == 1{
                     if self.loss.eq(&Loss::MSE){
-                        output_checked = output_checked.reshape((1,output_checked.shape().dims().get(0).unwrap().to_owned() )).unwrap();
+                        if input_checked.dims().len() == 2{
+                            // FIX ME: input_checked -- output_checked
+                            output_checked = output_checked.reshape((1,
+                                output_checked.shape().dims().get(0).unwrap().to_owned() 
+                                )
+                            ).unwrap();
+                        }
+                        else if input_checked.dims().len() == 3{
+                            output_checked = output_checked.reshape((1,
+                                1,
+                                output_checked.shape().dims().get(0).unwrap().to_owned() 
+                                )
+                            ).unwrap();
+                        }
+                        else if input_checked.dims().len() == 4{
+                            output_checked = output_checked.reshape((1,
+                                1,
+                                1, 
+                                output_checked.shape().dims().get(0).unwrap().to_owned(), 
+                                )
+                            ).unwrap();
+                        }
+                        else {
+                            panic!("Not supported dimension");
+                        }
                     }
                 }
                 

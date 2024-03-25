@@ -24,8 +24,8 @@ pub fn simple_dnn() {
     model.fit(
         Tensor::new(&x, &dev).unwrap(), 
         Tensor::new(&y, &dev).unwrap(), 
-        1000, 
-        true);
+        2000, 
+        false);
     
     let x_test: [[f32; 2]; 1] = [ [2., 1.] ];
     let prediction = model.predict(Tensor::new(&x_test, &dev).unwrap());
