@@ -25,7 +25,7 @@ To use it as library just call 'cargo add candlelighter'
 | Recurrent    |  &#9989;      | RNN 1st throw |  
 | Regulation   |  &#9989;      | -             | 
 | [Embedding](./docs/embedding.MD)     |  &#9989;      | S2S 1st throw |
-| [Attention](./docs/attention.MD)    |  &#x1F3C3;    | pending       |
+| [Attention](./docs/attention.MD)    |  &#x1F3C3;    | TNN 1st throw  |
 | Masking      |  &#x1F3C3;    | -             |
 | Merging      |  &#x1F3C3;    | -             | 
 | Fine tuning      |  &#x1F3C3;    | -             | 
@@ -34,4 +34,4 @@ To use it as library just call 'cargo add candlelighter'
 Notes:
 - **Masking** here is about handling sequences with varying lengths. 
 - In comparison **Merging** refers to the concept of *ensembling learning* that combines multiple models to create a stronger and more robust one (aka model merging). 
-- **Fine tuning** is about updating only selected neural network parameter e.g., while improving a given *foundation model*. Plan is to provide a DoRA and a LoRA implementation. 
+- **Fine tuning** is about updating only selected neural network parameter e.g., while improving a given *foundation model*. Plan is to provide a DoRA and a LoRA implementation and via Reinforcement Learning (RL, aka Transformer Reinforcement Learning, short TRL). 
