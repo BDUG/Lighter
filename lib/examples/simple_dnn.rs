@@ -20,11 +20,11 @@ pub fn simple_dnn() {
 
     let mut model = SequentialModel::new(varmap, layers);
     
-    model.compile(Optimizers::SGD(0.01), Loss::MSE);
+    model.compile(Optimizers::SGD(0.005), Loss::MSE);
     model.fit(
         Tensor::new(&x, &dev).unwrap(), 
         Tensor::new(&y, &dev).unwrap(), 
-        2000, 
+        1000, 
         false);
     
     let x_test: [[f32; 2]; 1] = [ [2., 1.] ];
