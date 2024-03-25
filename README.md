@@ -10,6 +10,9 @@ Examples can be found below the **lib/examples/** directory.
 
 To use it as library just call 'cargo add candlelighter'
 
+**CONTRIBUTORS ARE HIGHLY WELCOME**
+
+
 **Note:** It is by far not production ready and is only used for own training purposes. No warranty and liability is given. I am a private person and not targeting any commercial benefits. 
 
 
