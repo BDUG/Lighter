@@ -34,4 +34,4 @@ To use it as library just call 'cargo add candlelighter'
 Notes:
 - **Masking** here is about handling sequences with varying lengths. 
 - In comparison **Merging** refers to the concept of *ensembling learning* that combines multiple models to create a stronger and more robust one (aka model merging). 
-- **Fine tuning** is about updating only selected neural network parameter e.g., while improving a given *foundation model*. Plan is to provide a DoRA and a LoRA implementation and via Reinforcement Learning (RL, aka Transformer Reinforcement Learning, short TRL). 
+- **Fine tuning** is about updating only selected neural network parameter e.g., while improving a given *foundation model*. Plan is to provide a DoRA and a LoRA implementation via Reinforcement Learning (RL, aka Transformer Reinforcement Learning, short TRL). 
