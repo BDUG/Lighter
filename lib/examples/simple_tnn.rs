@@ -4,6 +4,7 @@ use crate::prelude::*;
 use crate::recurrenttypes::RecurrentType;
 use ndarray_rand::rand_distr::num_traits::ToPrimitive;
 use rand::distributions::Distribution;
+use crate::preprocessing;
 
 /** This example implements initial parts of the steps given on the following site:
  *  https://github.com/javierlorenzod/pytorch-attention-mechanism
@@ -101,15 +102,19 @@ pub fn simple_tnn() {
     let mut model = SequentialModel::new(varmap, layers);
     model.compile(Optimizers::SGD(0.01), Loss::MSE);       
 
+    let numbers: Vec<f32> = (0..=100).map(|x| x as f32).collect();
+    let scaling = preprocessing::featurescaling::FeatureScaling::new(Tensor::new( numbers, &dev).unwrap());
+
+
     model.fit(
-        to_tensor(&x,&dev).reshape((numofelements,1,sizeofsequence)).unwrap(), // samples, _ , time steps
-        to_tensor(&y,&dev).reshape((numofelements,1)).unwrap(), // samples, _, expected calculated result
-        100, 
-        true);
+        scaling.min_max_normalization_other( to_tensor(&x,&dev).reshape((numofelements,1,sizeofsequence)).unwrap() ), // samples, _ , time steps
+        scaling.min_max_normalization_other( to_tensor(&y,&dev).reshape((numofelements,1)).unwrap() ), // samples, _, expected calculated result
+        1000, 
+        false);
     
     let x_test: [[f32; 20]; 1] = [ [1., 2., 3., 4., 0., 6., 7., 8., 9., 0. ,11., 12.,12., 13., 14., 25., 16., 17., 18., 19., ] ];
-    let prediction = model.predict(Tensor::new(&x_test, &dev).unwrap());
+    let prediction = model.predict( scaling.min_max_normalization_other( Tensor::new(&x_test, &dev).unwrap() ) );
 
-    println!("Done {}",prediction)
+    println!("Done {}", scaling.min_max_normalization_reverse( prediction) );
 }
 

@@ -20,7 +20,7 @@ To use it as library just call 'cargo add candlelighter'
 
 | Type         |      State    |  Example      | 
 |--------------|---------------|---------------|
-| Feature scaling      |  &#x1F3C3;     | -             |
+| Feature scaling      |  &#x1F3C3;     | DNN and TNN             |
 | Dense (aka feed forward network, short FFN)        |  &#9989;      | DNN           |
 | Convolution  |  &#9989;      | CNN           |
 | Pooling      |  &#9989;      | -             |
