@@ -1,6 +1,6 @@
 [package]
 name = "candlelighter"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 authors = ["Dirk Bangel <dirk.bangel@gmx.de>"]
 description = "A Keras like abstraction layer on top of the Rust ML framework candle"
@@ -33,3 +33,4 @@ terminal-menu = "3.0.0"
 candle-ext = "0.1.7"
 multiarray = "0.1.3"
 candle-transformers = "0.4.1"
+
