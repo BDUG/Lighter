@@ -20,6 +20,7 @@ To use it as library just call 'cargo add candlelighter'
 
 | Type         |      State    |  Example      | 
 |--------------|---------------|---------------|
+| Feature scaling      |  &#x1F3C3;     | -             |
 | Dense (aka feed forward network, short FFN)        |  &#9989;      | DNN           |
 | Convolution  |  &#9989;      | CNN           |
 | Pooling      |  &#9989;      | -             |
@@ -38,3 +39,10 @@ Notes:
 - **Masking** here is about handling sequences with varying lengths. 
 - In comparison **Merging** refers to the concept of *ensembling learning* that combines multiple models to create a stronger and more robust one (aka model merging). 
 - **Fine tuning** is about updating only selected neural network parameter e.g., while improving a given *foundation model*. Plan is to provide a DoRA and a LoRA implementation via Reinforcement Learning (RL, aka Transformer Reinforcement Learning, short TRL). 
+
+
+
+# License
+Tripple-licensed to be compatible with the Rust project and the source roots.
+
+Licensed under the [MPL 2.0](./LICENSE), [MIT license](http://opensource.org/licenses/MIT) or the [Apache license, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0) at your option. 
