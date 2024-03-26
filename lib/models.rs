@@ -70,7 +70,6 @@ impl SequentialModel {
                 if output_checked.shape().dims().len() == 1{
                     if self.loss.eq(&Loss::MSE){
                         if input_checked.dims().len() == 2{
-                            // FIX ME: input_checked -- output_checked
                             output_checked = output_checked.reshape((1,
                                 output_checked.shape().dims().get(0).unwrap().to_owned() 
                                 )
@@ -122,11 +121,13 @@ impl SequentialModel {
                     Optimizers::Adam(lrate) => (lrate,2),
                     Optimizers::None(lrate) => (0.0,0),
                 };
+
                 // Apply optimizer 
                 // Also see https://github.com/huggingface/candle/issues/1509#issuecomment-1872916766
                 if enumvalue.1 == 1 {
                     let mut optimized: SGD = candle_nn::SGD::new(self.varmap.all_vars(), enumvalue.0).unwrap();
                     optimized.backward_step(&lossed_checked);
+                    //println!("{}", lossed_checked.to_vec0::<f32>().unwrap());
                 }
                 else if enumvalue.1 == 2 {
                     let adamw_params = candle_nn::ParamsAdamW {

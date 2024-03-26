@@ -2,6 +2,7 @@ pub mod prelude;
 
 pub mod layer;
 pub mod examples;
+pub mod preprocessing;
 
 pub mod models;
 pub mod optimizers;
@@ -14,4 +15,5 @@ pub mod serializationtensor;
 pub mod layers;
 pub mod recurrenttypes;
 pub mod embeddingtypes;
+
 

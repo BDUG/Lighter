@@ -3,7 +3,7 @@ use std::env;
 
 #[allow(unused)]
 use candlelighter::prelude::*;
-use candlelighter::recurrenttypes::RecurrentType;
+use candlelighter::{preprocessing::featurescaling, recurrenttypes::RecurrentType};
 use terminal_menu::{menu, label, button, list, scroll, run, mut_menu};
 
 
