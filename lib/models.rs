@@ -1,5 +1,4 @@
 
-
 use flatten::embeddinglayer::{Embed, EmbeddingLayerTrait};
 use ndarray_rand::rand_distr::num_traits::ToPrimitive;
 
@@ -46,6 +45,8 @@ impl SequentialModel {
     }
 
     pub fn fit(&mut self, x: Tensor, _y: Tensor, epochs: usize ,_verbose: bool) {
+        let mut bestloss = f32::MAX;
+        let mut snapshot:Option< VarMap > = None;
         for _i in 0..epochs {
             if _verbose{
                 println!("Epoche {}",_i);
@@ -119,15 +120,18 @@ impl SequentialModel {
                 let enumvalue: (f64,u8) = match self.optimizer {
                     Optimizers::SGD(lrate) => (lrate, 1),
                     Optimizers::Adam(lrate) => (lrate,2),
-                    Optimizers::None(lrate) => (0.0,0),
+                    Optimizers::None(_lrate) => (0.0,0),
                 };
 
                 // Apply optimizer 
                 // Also see https://github.com/huggingface/candle/issues/1509#issuecomment-1872916766
                 if enumvalue.1 == 1 {
                     let mut optimized: SGD = candle_nn::SGD::new(self.varmap.all_vars(), enumvalue.0).unwrap();
-                    optimized.backward_step(&lossed_checked);
-                    //println!("{}", lossed_checked.to_vec0::<f32>().unwrap());
+                    let _ = optimized.backward_step(&lossed_checked);
+                    if bestloss.gt(&lossed_checked.to_vec0::<f32>().unwrap()){
+                        bestloss = lossed_checked.to_vec0::<f32>().unwrap();
+                        snapshot = Some(self.varmap.clone());
+                    }
                 }
                 else if enumvalue.1 == 2 {
                     let adamw_params = candle_nn::ParamsAdamW {
@@ -135,10 +139,16 @@ impl SequentialModel {
                         ..Default::default()
                     };
                     let mut optimized: AdamW = candle_nn::AdamW::new(self.varmap.all_vars(), adamw_params).unwrap();
-                    optimized.backward_step(&lossed_checked);
+                    let _ = optimized.backward_step(&lossed_checked);
+                    if bestloss.gt(&lossed_checked.to_vec0::<f32>().unwrap()){
+                        bestloss = lossed_checked.to_vec0::<f32>().unwrap();
+                        snapshot = Some(self.varmap.clone());
+                    }
                 }
             }
         }
+        println!("Best loss {} ",bestloss);
+        self.varmap= snapshot.unwrap().clone();
     }
 
 
@@ -189,7 +199,7 @@ impl SequentialModel {
                 None    => panic!("Unknown state"),
             };
             let name = match _name {
-                Some(x) => x.clone(),
+                Some(x) => x, //.clone(),
                 None    => panic!("Unknown state"),
             };
             self.varmap.data().lock().unwrap().insert(name.to_string(),Var::new(values, &device).unwrap());
@@ -230,7 +240,7 @@ impl SequentialModel {
 
     fn extractjson_value_serializedtensor(&self, elem: &serde_json::Map<String, Value>, key: &str, device: &Device) -> Tensor{
         let value: Option<(&String, &Value)> = elem.get_key_value(key);
-        let rst = match value {
+        let _rst = match value {
             Some(x) => x.1.clone(),
             None    => panic!("Unknown state"),
         };
@@ -389,9 +399,9 @@ impl Serialize for SequentialModel {
         S: Serializer,
     {
         let mut state = serializer.serialize_struct("sequential", 3)?;
-        state.serialize_field("optimizer", &self.optimizer);
-        state.serialize_field("loss", &self.loss);      
-        state.serialize_field("layers", &self.layers);
+        let _ = state.serialize_field("optimizer", &self.optimizer);
+        let _ = state.serialize_field("loss", &self.loss);      
+        let _ = state.serialize_field("layers", &self.layers);
         return Ok(state.end().unwrap());
     }
 }

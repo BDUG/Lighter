@@ -1,17 +1,10 @@
-use std::ops::Add;
 
 use crate::embeddingtypes::EmbeddingType;
 #[allow(unused)]
 use crate::prelude::*;
-use crate::recurrenttypes::RecurrentType;
-use candle_core::quantized::QuantizedType;
-use candle_nn::ops::softmax;
 use flatten::embeddinglayer::Embed;
 use flatten::embeddinglayer::EmbeddingLayerTrait;
-use ndarray::prelude::*;
-use ndarray::Array;
 use ndarray_rand::rand_distr::num_traits::ToPrimitive;
-use rand::Rng;
 use std::collections::HashMap;
 
 /** This example implements initial parts of the steps given on the following site:
@@ -36,7 +29,7 @@ pub fn simple_s2s() {
         dc.insert(e.clone(), pos);
     }
     let mut resulttensor : Vec<u32> = Vec::new();
-    for (pos, e) in sentence_splitted.iter().enumerate() {
+    for (_pos, e) in sentence_splitted.iter().enumerate() {
         let rst = dc.get(e).clone().unwrap();
         resulttensor.push(rst.clone().to_u32().unwrap());
     }
@@ -58,28 +51,28 @@ pub fn simple_s2s() {
     let d_k: usize = 24;
     let d_v: usize = 28;
 
-    let W_query = Tensor::rand(0.0, 1.0, (d_q,d), &dev).unwrap().to_dtype(DType::F32).unwrap();
-    let W_key = Tensor::rand(0.0, 1.0, (d_k,d), &dev).unwrap().to_dtype(DType::F32).unwrap();
-    let W_value = Tensor::rand(0.0, 1.0, (d_v,d), &dev).unwrap().to_dtype(DType::F32).unwrap();
+    let w_query = Tensor::rand(0.0, 1.0, (d_q,d), &dev).unwrap().to_dtype(DType::F32).unwrap();
+    let w_key = Tensor::rand(0.0, 1.0, (d_k,d), &dev).unwrap().to_dtype(DType::F32).unwrap();
+    let w_value = Tensor::rand(0.0, 1.0, (d_v,d), &dev).unwrap().to_dtype(DType::F32).unwrap();
 
     let embedded_sentence_vector = embedded_sentence.to_vec3::<f32>().unwrap();
 
     let mut query_attention_weight = Vec::new();
-    for  (pos, e) in embedded_sentence_vector[0].iter().enumerate(){
+    for  (_pos, e) in embedded_sentence_vector[0].iter().enumerate(){
         let word: Tensor = Tensor::from_vec(e.clone(), (d,1), &dev ).unwrap().clone();
-        query_attention_weight.push(W_query.matmul(&word).unwrap().clone());
+        query_attention_weight.push(w_query.matmul(&word).unwrap().clone());
     }
     println!("Vector: {:?}", query_attention_weight);
 
-    let keys = W_key.matmul(&embedded_sentence.reshape( (6,16) ).unwrap().t().unwrap()).unwrap();
-    let values = W_value.matmul(&embedded_sentence.reshape( (6,16) ).unwrap().t().unwrap()).unwrap();
+    let keys = w_key.matmul(&embedded_sentence.reshape( (6,16) ).unwrap().t().unwrap()).unwrap();
+    let values = w_value.matmul(&embedded_sentence.reshape( (6,16) ).unwrap().t().unwrap()).unwrap();
 
     println!("{}",keys);
     println!("{}",values);
     
     // omega = w
     let mut omegas = Vec::new();
-    for  (pos, e) in query_attention_weight.iter().enumerate(){
+    for  (_pos, e) in query_attention_weight.iter().enumerate(){
         let omega_tmp = e.reshape( (1,24) ).unwrap().matmul(&keys).unwrap();
         omegas.push(omega_tmp.clone());
     }

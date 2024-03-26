@@ -3,8 +3,6 @@ use std::ops::Add;
 #[allow(unused)]
 use crate::prelude::*;
 use crate::recurrenttypes::RecurrentType;
-use ndarray::prelude::*;
-use ndarray::Array;
 use rand::Rng;
 
 pub fn simple_rnn() {
@@ -78,16 +76,14 @@ pub fn generate_sum_pair(batchsize: usize) -> Vec<Vec<Vec<f32>>> {
 
 
 // TBD: DO addition with given textual description e.g. 1+1
-
 pub fn simple_rnn2() {
-    const numm: usize= 100;
     let varmap = VarMap::new();
     let dev = candle_core::Device::cuda_if_available(0).unwrap();
-    let mut generateddata: Vec<Vec<Vec<f32>>> = generate_sum_pair(numm);
+    let generateddata: Vec<Vec<Vec<f32>>> = generate_sum_pair(100);
     let x_tmp: &Vec<Vec<f32>> = generateddata.get(0).unwrap();
     let y_tmp: &Vec<Vec<f32>> = generateddata.get(1).unwrap();
 
-    let xsize : usize = x_tmp.len();
+    let _xsize : usize = x_tmp.len();
     /*for i in 0..xsize{
         let mut sentense : String = String::new();
         for j in 0..2 {

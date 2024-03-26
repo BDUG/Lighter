@@ -1,6 +1,3 @@
-
-use std::ops::Not;
-
 #[allow(unused)]
 pub use crate::prelude::*;
 use crate::embeddingtypes::EmbeddingType;
@@ -22,19 +19,16 @@ pub trait EmbeddingLayerTrait {
 impl EmbeddingLayerTrait for Embed {
     fn new(embeddingtype: EmbeddingType, inputdimension: usize,  hiddendimension: usize, device: &Device, varmap : &VarMap, name: String) -> Self{
         let tmp_name = name.clone();
-        let mut tmp_embedding = None;
-
+        
          // Lazy Init
         let vs = VarBuilder::from_varmap(varmap, DType::F32, &device);
-        tmp_embedding = Some(embedding::embedding(inputdimension, hiddendimension, vs).unwrap());
-        
-        //
+        let embedding = Some(embedding::embedding(inputdimension, hiddendimension, vs).unwrap());
 
         Self {
             embeddingtype: embeddingtype,
             inputdimension: inputdimension,
             hiddendimension: hiddendimension,
-            embedding : tmp_embedding,
+            embedding : embedding,
             device : device.clone(),
             name: tmp_name.clone(),
         }

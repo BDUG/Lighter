@@ -1,37 +1,25 @@
-use std::ops::Add;
-use std::ptr::eq;
 
-use crate::embeddingtypes::EmbeddingType;
 #[allow(unused)]
 use crate::prelude::*;
 use crate::recurrenttypes::RecurrentType;
-use candle_core::quantized::QuantizedType;
-use candle_nn::ops::softmax;
-use flatten::embeddinglayer::Embed;
-use flatten::embeddinglayer::EmbeddingLayerTrait;
-use ndarray::prelude::*;
-use ndarray::Array;
 use ndarray_rand::rand_distr::num_traits::ToPrimitive;
 use rand::distributions::Distribution;
-use rand::Rng;
-use std::collections::HashMap;
-use rand::distributions::{Uniform};
 
 /** This example implements initial parts of the steps given on the following site:
  *  https://github.com/javierlorenzod/pytorch-attention-mechanism
  *  https://github.com/philipperemy/keras-attention-mechanism/blob/master/examples/add_two_numbers.py
  */
 
-struct Dataitem {
+struct TNNDataitem {
     x: Vec<usize>,
     y: usize
 }
 
-pub fn generatedata(sizeofsequence: usize, numofelements: usize, delimiter: f32) -> Vec<Dataitem> {
-    let mut result: Vec<Dataitem> = vec![];
+pub fn generatedata(sizeofsequence: usize, numofelements: usize, delimiter: f32) -> Vec<TNNDataitem> {
+    let mut result: Vec<TNNDataitem> = vec![];
 
     let vals: Vec<u64> = (0..numofelements as u64).collect();
-    for (i, value) in vals.iter().enumerate() {
+    for (i, _value) in vals.iter().enumerate() {
         let index_1 = Uniform::new(0, sizeofsequence/ 2);
         let index_2 = Uniform::new(sizeofsequence/2, sizeofsequence);
    
@@ -40,7 +28,7 @@ pub fn generatedata(sizeofsequence: usize, numofelements: usize, delimiter: f32)
         let b = index_2.sample(&mut rng);
 
 
-        let mut resultelement =  Dataitem {
+        let mut resultelement =  TNNDataitem {
             x: Vec::new(),
             y : a+b
         };
@@ -86,7 +74,7 @@ pub fn simple_tnn() {
     let mut x: Vec<Vec<f32>> = Vec::new();
     let mut y: Vec<Vec<f32>> = Vec::new();
 
-    for (j, value) in dataset.iter().enumerate() {
+    for (_j, value) in dataset.iter().enumerate() {
         let tmp_value = value.x.iter().filter_map( |s| s.to_f32() ) .collect();
         x.push(tmp_value);
 

@@ -14,7 +14,7 @@ pub trait NormalizationLayerTrait {
 
 
 impl NormalizationLayerTrait for Normalization {
-    fn new(axis: u64, device: &Device, varmap : &VarMap, name: String) -> Self {
+    fn new(axis: u64, device: &Device, _varmap : &VarMap, name: String) -> Self {
         let tmp_name = name.clone();
         Self {
             axis: axis,
@@ -30,7 +30,7 @@ impl Trainable for Normalization {
 
     fn forward(&self, input: Tensor) -> Tensor {
         let result = input.clone();
-        result.normalize_axis(self.axis as i64);
+        let _ = result.normalize_axis(self.axis as i64);
         return result;
     }
 

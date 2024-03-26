@@ -3,9 +3,6 @@ use rand::distributions::Distribution;
 #[allow(unused)]
 use crate::prelude::*;
 use crate::preprocessing;
-use rand::Rng;
-use std::{collections::HashMap, ops::Add};
-use rand::distributions::{Uniform};
 
 struct Dataitem {
     x: Vec<usize>,
@@ -92,10 +89,10 @@ pub fn simple_dnn() {
     model.fit(
         scaling.min_max_normalization_other(tmp_x), 
         scaling.min_max_normalization_other(tmp_y), 
-        1000, 
+        3000, 
         false);
     
-    let x_test: [[f32; 2]; 1] = [ [4., 3.] ];
+    let x_test: [[f32; 2]; 1] = [ [4., 5.] ];
     let tmp_tensor = scaling.min_max_normalization_other(Tensor::new(&x_test, &dev).unwrap());
     let prediction = model.predict(tmp_tensor);
     println!("Prediction: {}", scaling.min_max_normalization_reverse(prediction));

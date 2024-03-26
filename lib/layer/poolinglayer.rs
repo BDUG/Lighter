@@ -1,6 +1,3 @@
-
-use std::ops::Not;
-
 #[allow(unused)]
 pub use crate::prelude::*;
 
@@ -18,7 +15,7 @@ pub trait PoolingLayerTrait {
 
 
 impl PoolingLayerTrait for Pooling {
-    fn new(poolingtype: PoolingType, kernelsize: usize, stride: usize, device: &Device, varmap : &VarMap, name: String) -> Self{
+    fn new(poolingtype: PoolingType, kernelsize: usize, stride: usize, device: &Device, _varmap : &VarMap, name: String) -> Self{
         let tmp_name = name.clone();
         Self {
             poolingtype: poolingtype,

@@ -14,7 +14,7 @@ pub trait FlattenLayerTrait {
 
 
 impl FlattenLayerTrait for Flatten {
-    fn new(device: &Device, varmap : &VarMap, name: String) -> Self {
+    fn new(device: &Device, _varmap : &VarMap, name: String) -> Self {
         let tmp_name = name.clone();
         Self {
             device : device.clone(),
