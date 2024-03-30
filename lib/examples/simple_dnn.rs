@@ -2,30 +2,31 @@ use rand::distributions::Distribution;
 
 #[allow(unused)]
 use crate::prelude::*;
-use crate::preprocessing;
+use crate::preprocessing::{self, features::{Features, FeaturesTrait}};
 
-struct Dataitem {
+pub struct Dataitem {
     x: Vec<usize>,
-    y: usize
+    y: Vec<usize>
 }
 
 pub fn generatedata(numofelements: usize, limit: usize) -> Vec<Dataitem> {
     let mut result: Vec<Dataitem> = vec![];
 
     let vals: Vec<u64> = (0..numofelements as u64).collect();
-    for (i, value) in vals.iter().enumerate() {
+    for (_i,_valuee) in vals.iter().enumerate() {
         let index = Uniform::new(0, limit);
         let mut rng = rand::thread_rng();
         let a = index.sample(&mut rng);
         let b = index.sample(&mut rng);
 
-
         let mut resultelement =  Dataitem {
-            x: Vec::new(),
-            y : a+b
+            x: Vec::new(), // e.g., 1. , 2.
+            y: Vec::new() // e.g., 3.
         };
         resultelement.x.push(a);
         resultelement.x.push(b);
+
+        resultelement.y.push( a+b );
 
         result.push(resultelement);
     }
@@ -37,32 +38,22 @@ pub fn simple_dnn() {
     let varmap = VarMap::new();
     let dev = candle_core::Device::cuda_if_available(0).unwrap();
 
-
     let dataset = generatedata(2000, 10);
+    let mut featurehelper_x = Features::new(dev.clone());
+    let mut featurehelper_y = Features::new(dev.clone());
 
-    let mut _x: Vec<Vec<f32>> = Vec::new();
-    let mut _y: Vec<Vec<f32>> = Vec::new();
+    for (_j, value) in dataset.iter().enumerate() {
+        let tmp_x_value = value.x.iter().filter_map( |s| Some(*s as f32) ) .collect();
+        featurehelper_x.add_feature_1_d(tmp_x_value);
 
-    for (j, value) in dataset.iter().enumerate() {
-        let tmp_value = value.x.iter().filter_map( |s| Some(*s as f32) ) .collect();
-        _x.push(tmp_value);
-
-        let mut tmp_y: Vec<f32> = Vec::new();
-        tmp_y.push(value.y as f32);
-        _y.push(tmp_y);
+        let tmp_y_value = value.y.iter().filter_map( |s| Some(*s as f32) ) .collect();
+        featurehelper_y.add_feature_1_d(tmp_y_value);
     }
-    let mut _x1layer: Vec<_> = Vec::new();
-    let mut _x2layer: Vec<_> = Vec::new();
-    _x2layer.push(_x);
-    _x1layer.push(_x2layer);
-    let mut _y1layer: Vec<_>= Vec::new();
-    let mut _y2layer: Vec<_> = Vec::new();
-    _y2layer.push(_y);
-    _y1layer.push(_y2layer);
+    let tmp_x = featurehelper_x.get_data_tensor();
+    let tmp_y = featurehelper_y.get_data_tensor();
 
-    
-    //let x: [[[f32; 2]; 1]; 6] = [ [[1., 2.]] , [[2., 1.]] ,[[3., 4.]], [[5., 6.]], [[5., 5.]] , [[4., 5.]]];
-    //let y: [[[f32; 1]; 1]; 6] = [ [[3.]], [[3.]], [[7.]], [[11.]] , [[10.]], [[9.]]];
+    //println!("{}",tmp_x);
+    //println!("{}",tmp_y);
 
     let mut layers: Vec<Box<dyn Trainable>> = vec![];
     let mut name1 = String::new();
@@ -77,11 +68,6 @@ pub fn simple_dnn() {
 
     let mut model = SequentialModel::new(varmap, layers);
     
-    //let tmp_x = Tensor::new(&x, &dev).unwrap();
-    //let tmp_y = Tensor::new(&y, &dev).unwrap();
-    let tmp_x = Tensor::new(_x1layer, &dev).unwrap();
-    let tmp_y = Tensor::new(_y1layer, &dev).unwrap();
-
     let numbers: Vec<f32> = (0..=100).map(|x| x as f32).collect();
     let scaling = preprocessing::featurescaling::FeatureScaling::new(Tensor::new( numbers, &dev).unwrap());
 
@@ -89,11 +75,15 @@ pub fn simple_dnn() {
     model.fit(
         scaling.min_max_normalization_other(tmp_x), 
         scaling.min_max_normalization_other(tmp_y), 
-        3000, 
+        1000, 
         false);
     
+    let mut featurehelper_x_test = Features::new(dev.clone());
     let x_test: [[f32; 2]; 1] = [ [4., 5.] ];
-    let tmp_tensor = scaling.min_max_normalization_other(Tensor::new(&x_test, &dev).unwrap());
+    let _tmp_tensor = Tensor::new(&x_test, &dev).unwrap();
+    featurehelper_x_test.add_feature(_tmp_tensor);
+
+    let tmp_tensor = scaling.min_max_normalization_other(featurehelper_x_test.get_data_tensor());
     let prediction = model.predict(tmp_tensor);
-    println!("Prediction: {}", scaling.min_max_normalization_reverse(prediction));
+    println!("Prediction: {}", scaling.min_max_normalization_reverse( prediction.get(0).unwrap().clone() ));
 }

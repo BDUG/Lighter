@@ -30,7 +30,7 @@ pub fn simple_rnn() {
     
     let x_test: [[f32; 2]; 1] = [ [1., 1.] ];
     let prediction = model.predict(Tensor::new(&x_test, &dev).unwrap());
-    println!("prediction: {}", prediction);
+    println!("prediction: {}", prediction.get(0).unwrap().clone() );
 }
 
 pub fn to_tensor(input: &Vec<Vec<f32>>, device: &Device) -> Tensor{
@@ -117,5 +117,5 @@ pub fn simple_rnn2() {
     
     let x_test: [[f32; 2]; 1] = [ [2., 1.] ];
     let prediction = model.predict(Tensor::new(&x_test, &dev).unwrap());
-    println!("prediction: {}", prediction);
+    println!("prediction: {}", prediction.get(0).unwrap().clone() );
 }

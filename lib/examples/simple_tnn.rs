@@ -1,17 +1,21 @@
 
 #[allow(unused)]
 use crate::prelude::*;
-use crate::recurrenttypes::RecurrentType;
+use crate::{preprocessing::features::{Features, FeaturesTrait}, recurrenttypes::RecurrentType};
 use ndarray_rand::rand_distr::num_traits::ToPrimitive;
 use rand::distributions::Distribution;
 use crate::preprocessing;
 
-/** This example implements initial parts of the steps given on the following site:
- *  https://github.com/javierlorenzod/pytorch-attention-mechanism
- *  https://github.com/philipperemy/keras-attention-mechanism/blob/master/examples/add_two_numbers.py
+/** This example base on the idea of the following site: https://github.com/javierlorenzod/pytorch-attention-mechanism
+ * 
+ * A sequence of numbers has given delimiter e.g., 0. The numbers after the delimiter will be added e.g.,
+ * 
+ * 1 2 3 4 0 5 0 7. 
+ * 
+ * 5+7 = 12 
  */
 
-struct TNNDataitem {
+pub struct TNNDataitem {
     x: Vec<usize>,
     y: usize
 }
@@ -35,7 +39,7 @@ pub fn generatedata(sizeofsequence: usize, numofelements: usize, delimiter: f32)
         };
 
         let vals2: Vec<u64> = (0..sizeofsequence as u64).collect();
-        for (j, value2) in vals2.iter().enumerate() {
+        for (_j, value2) in vals2.iter().enumerate() {
 
             if value2.to_usize() == Some(a) || value2.to_usize() == Some(b) {
                 resultelement.x.push(delimiter as usize);
@@ -66,23 +70,24 @@ pub fn to_tensor(input: &Vec<Vec<f32>>, device: &Device) -> Tensor{
 
 pub fn simple_tnn() {
     let sizeofsequence = 20;
-    let numofelements = 2000;
+    let numofelements = 20000;
 
     let varmap = VarMap::new();
     let dev = candle_core::Device::cuda_if_available(0).unwrap();
     let dataset = generatedata(sizeofsequence, numofelements, 0.0);
 
-    let mut x: Vec<Vec<f32>> = Vec::new();
-    let mut y: Vec<Vec<f32>> = Vec::new();
+    let mut featurehelper_x = Features::new(dev.clone());
+    let mut featurehelper_y = Features::new(dev.clone());
 
     for (_j, value) in dataset.iter().enumerate() {
-        let tmp_value = value.x.iter().filter_map( |s| s.to_f32() ) .collect();
-        x.push(tmp_value);
+        let tmp_x_value = value.x.iter().filter_map( |s| s.to_f32() ) .collect();
+        featurehelper_x.add_feature_1_d(tmp_x_value);
 
-        let mut tmp_y: Vec<f32> = Vec::new();
-        tmp_y.push(value.y.to_f32().unwrap());
-        y.push(tmp_y);
+        let mut tmp_y_value: Vec<f32> = Vec::new();
+        tmp_y_value.push(value.y.to_f32().unwrap());
+        featurehelper_y.add_feature_1_d(tmp_y_value);
     }
+
 
     let mut layers: Vec<Box<dyn Trainable>> = vec![];
 
@@ -97,24 +102,38 @@ pub fn simple_tnn() {
     
     let mut name3 = String::new();
     name3.push_str("fc1");
-    layers.push(Box::new(Dense::new(1, sizeofsequence, Activations::Relu, &dev, &varmap, name3 )));
+    layers.push(Box::new(Dense::new(4, sizeofsequence, Activations::Relu, &dev, &varmap, name3 )));
+    
+    let mut name4 = String::new();
+    name4.push_str("fc2");
+    layers.push(Box::new(Dense::new(1, 4, Activations::Relu, &dev, &varmap, name4 )));
 
     let mut model = SequentialModel::new(varmap, layers);
-    model.compile(Optimizers::SGD(0.01), Loss::MSE);       
+    model.compile(Optimizers::Adam(0.0005), Loss::MSE);       
 
     let numbers: Vec<f32> = (0..=100).map(|x| x as f32).collect();
     let scaling = preprocessing::featurescaling::FeatureScaling::new(Tensor::new( numbers, &dev).unwrap());
 
+    let tmp_x = featurehelper_x.get_data_tensor();
+    let tmp_y = featurehelper_y.get_data_tensor();
 
-    model.fit(
-        scaling.min_max_normalization_other( to_tensor(&x,&dev).reshape((numofelements,1,sizeofsequence)).unwrap() ), // samples, _ , time steps
-        scaling.min_max_normalization_other( to_tensor(&y,&dev).reshape((numofelements,1)).unwrap() ), // samples, _, expected calculated result
-        1000, 
+    model.fit( 
+        scaling.min_max_normalization_other(tmp_x), 
+        scaling.min_max_normalization_other(tmp_y), 
+        10, 
         false);
     
-    let x_test: [[f32; 20]; 1] = [ [1., 2., 3., 4., 0., 6., 7., 8., 9., 0. ,11., 12.,12., 13., 14., 25., 16., 17., 18., 19., ] ];
-    let prediction = model.predict( scaling.min_max_normalization_other( Tensor::new(&x_test, &dev).unwrap() ) );
 
-    println!("Done {}", scaling.min_max_normalization_reverse( prediction) );
+    
+    let mut featurehelper_x_test = Features::new(dev.clone());
+    let x_test: [f32; 20] = [1., 2., 3., 4., 0., 6., 7., 8., 9., 0. ,11., 12.,12., 13., 14., 25., 16., 17., 18., 19., ];
+    let _tmp_tensor = Tensor::new(&x_test, &dev).unwrap();
+    featurehelper_x_test.add_feature(_tmp_tensor);
+
+    let tmp_tensor = scaling.min_max_normalization_other(featurehelper_x_test.get_data_tensor());
+    let prediction = model.predict(tmp_tensor);
+    
+    // 6 + 11 = 17 
+    println!("Done {}", scaling.min_max_normalization_reverse( prediction.get(0).unwrap().clone() ) );
 }
 

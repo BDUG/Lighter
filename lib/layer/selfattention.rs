@@ -48,12 +48,17 @@ impl SelfAttentionTrait for SelfAttention {
 impl Trainable for SelfAttention {
     
     fn forward( &self, input: Tensor) -> Tensor {
+        // FIX ME: Hidden state might be important 
         //self.kv.silu().unwrap().apply(&self.key_value_mapping).unwrap();
-        let batchsize = 1; // Due to outer loop
-        let channel = 1; // FIX ME
+        let batchsize = 1; 
+        let channel = 1; 
         let height = input.shape().dims()[0];
         let weight = input.shape().dims()[1];
-        return self.attention.forward(&input.reshape((batchsize,channel,height,weight)).unwrap().clone(), & self.kv.reshape((1,weight,1)).unwrap().clone()).unwrap().clone();
+        // FIX ME: Candle class is made for image, we here have it 
+        // more in a general purpose, due to that we have to convert 
+        // the result back into is original shape.
+        let mut rst = self.attention.forward(&input.reshape((batchsize,channel,height,weight)).unwrap().clone(), & self.kv.reshape((1,weight,1)).unwrap().clone()).unwrap().clone();
+        return rst.reshape( (height,weight) ).unwrap(); 
     }
 
     fn typ(&self) -> String {

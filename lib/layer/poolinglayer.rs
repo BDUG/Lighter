@@ -35,27 +35,18 @@ impl Trainable for Pooling {
     
     fn forward(&self, input: Tensor) -> Tensor {
         let mut tmp = input.clone();
-        if input.shape().dims().len() != 4 as usize {
-            tmp = input.reshape(
-                (
-                    1 as usize,
-                    1 as usize,
-                    input.shape().dims().get(0).unwrap().to_owned() as usize,
-                    input.shape().dims().get(1).unwrap().to_owned() as usize)).unwrap();
-        }
+        let timesteps = *input.shape().dims().get(0).unwrap();
+        let height = *input.shape().dims().get(1).unwrap();
+        let weight = *input.shape().dims().get(2).unwrap();
+        tmp = tmp.reshape( (1,timesteps,height,weight) ).unwrap();
 
         let mut result =  match self.poolingtype {
             PoolingType::MAX => tmp.avg_pool2d_with_stride(self.kernelsize, self.stride).unwrap(),
             PoolingType::AVERAGE => tmp.max_pool2d_with_stride(self.kernelsize, self.stride).unwrap(),
         };
-        let a = result.shape().dims().get(2).unwrap().to_owned() as usize;
-        let b = result.shape().dims().get(3).unwrap().to_owned() as usize;
-        result = result.reshape( 
-            (
-                a,
-                b
-            ) ).unwrap();
-        return result;
+        let height = *result.shape().dims().get(2).unwrap();
+        let weight = *result.shape().dims().get(3).unwrap();
+        return result.reshape( (timesteps,height,weight) ).unwrap();
     }
 
     fn typ(&self) -> String {

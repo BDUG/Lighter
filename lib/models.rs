@@ -13,6 +13,7 @@ pub struct SequentialModel {
     pub loss: Loss,
     pub varmap: VarMap,
 }
+
 impl SequentialModel {
     pub fn new(varmap: VarMap,layers: Vec<Box<dyn Trainable>>) -> Self {
         Self {
@@ -63,6 +64,7 @@ impl SequentialModel {
                 };
                 
                 for layer in self.layers.iter() {
+                    //println!("{} ",layer.typ());
                     input_checked = layer.forward(input_checked).clone();
                 }
                 if input_checked.shape().dims().len() == 1{
@@ -128,9 +130,11 @@ impl SequentialModel {
                 if enumvalue.1 == 1 {
                     let mut optimized: SGD = candle_nn::SGD::new(self.varmap.all_vars(), enumvalue.0).unwrap();
                     let _ = optimized.backward_step(&lossed_checked);
-                    if bestloss.gt(&lossed_checked.to_vec0::<f32>().unwrap()){
-                        bestloss = lossed_checked.to_vec0::<f32>().unwrap();
-                        snapshot = Some(self.varmap.clone());
+                    if bestloss.ge(&lossed_checked.to_vec0::<f32>().unwrap()){
+                        if lossed_checked.to_vec0::<f32>().unwrap().ne(&0.0) {
+                            bestloss = lossed_checked.to_vec0::<f32>().unwrap();
+                            snapshot = Some(self.varmap.clone());
+                        }
                     }
                 }
                 else if enumvalue.1 == 2 {
@@ -140,9 +144,11 @@ impl SequentialModel {
                     };
                     let mut optimized: AdamW = candle_nn::AdamW::new(self.varmap.all_vars(), adamw_params).unwrap();
                     let _ = optimized.backward_step(&lossed_checked);
-                    if bestloss.gt(&lossed_checked.to_vec0::<f32>().unwrap()){
-                        bestloss = lossed_checked.to_vec0::<f32>().unwrap();
-                        snapshot = Some(self.varmap.clone());
+                    if bestloss.ge(&lossed_checked.to_vec0::<f32>().unwrap()){
+                        if lossed_checked.to_vec0::<f32>().unwrap().ne(&0.0) {
+                            bestloss = lossed_checked.to_vec0::<f32>().unwrap();
+                            snapshot = Some(self.varmap.clone());
+                        }
                     }
                 }
             }
@@ -152,11 +158,23 @@ impl SequentialModel {
     }
 
 
-    pub fn predict(&self, mut x: Tensor) -> Tensor {
-        for layer in self.layers.iter() {
-            x = layer.forward(x);
+    pub fn predict(&self, mut x: Tensor) -> Vec<Tensor> {
+        
+        let mut result: Vec<Tensor> = Vec::new();
+
+        for elementnumber in 0.. x.dims().get(0).unwrap().to_usize().unwrap() {
+            let mut _original_data = x.clone();
+            let mut input_checked = match _original_data.get(elementnumber) {
+                Ok(element) => element,
+                Err(error) => panic!("{}",error.to_string()),
+            };
+            for layer in self.layers.iter() {
+                input_checked = layer.forward(input_checked);
+            }
+            result.push(input_checked);
         }
-        return x;
+
+        return result;
     }
 
     pub fn save_weights(&self, path: &str) {
