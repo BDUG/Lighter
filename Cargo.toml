@@ -1,6 +1,6 @@
 [package]
 name = "candlelighter"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 authors = ["Dirk Bangel <dirk.bangel@gmx.de>"]
 description = "A Keras like abstraction layer on top of the Rust ML framework candle"
@@ -12,7 +12,7 @@ license = "MPL-2.0"
 license-file = "LICENSE"
 keywords = ["machine","learning","ML","candle","KERAS"]
 categories = ["science", "hardware-support","development-tools","computer-vision","algorithms"]
-exclude = [".github/", ".*", ".vscode/","target/*"]
+exclude = [".github/", ".*", ".vscode/","target/*","Cargo.lock"]
 
 [lib]
 name = "candlelighter"
