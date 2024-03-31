@@ -13,7 +13,7 @@ fn main() {
 
     let menu = menu(vec![
         label("Select an example ..."),
-        scroll("examples", vec!["Simple DNN", "Simple CNN","Simple RNN","Simple RNN2","Simple S2S","Simple TNN"]),
+        scroll("examples", vec!["Simple DNN", "Simple CNN","Simple RNN","Simple RNN2","Simple S2S","Simple TNN","Simple ENN"]),
         button("exit")
     ]);
     run(&menu);
@@ -39,6 +39,9 @@ fn main() {
         }
         else if mm.selection_value("examples").eq("Simple TNN") {
             candlelighter::examples::simple_tnn::simple_tnn();
+        }
+        else if mm.selection_value("examples").eq("Simple ENN") {
+            candlelighter::examples::simple_enn::simple_enn();
         }
     }
 }
