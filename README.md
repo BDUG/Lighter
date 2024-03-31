@@ -30,7 +30,7 @@ To use it as library just call 'cargo add candlelighter'
 | Regulation   |  &#9989;      | -             | 
 | [Feature embedding](./docs/embedding.MD)     |  &#9989;      | S2S 1st throw |
 | [Attention](./docs/attention.MD)    |  &#x1F3C3;    | TNN 1st throw  |
-| [MoE switch](./docs/moe.MD)   |  &#x1F3C3;    | -             |
+| [MoE switch](./docs/moe.MD)   |  &#x1F3C3;    | ENN 1st throw             |
 | Masking      |  &#x1F3C3;    | -             |
 | Merging      |  &#x1F3C3;    | -             | 
 | Fine tuning      |  &#x1F3C3;    | -             | 
