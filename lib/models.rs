@@ -409,6 +409,32 @@ impl SequentialModel {
 
 }
 
+impl Trainable for SequentialModel {
+    fn forward(&self, input: Tensor) -> Tensor {
+        let mut input_checked = input.clone();
+        for layer in self.layers.iter() {
+            //println!("{} ",layer.typ());
+            input_checked = layer.forward(input_checked).clone();
+        }
+
+        return input_checked;
+    }
+
+    fn typ(&self) -> String {
+        "Sequential".into()
+    }
+
+    fn input_perceptrons(&self) -> u32{
+        return 1.0 as u32;
+    }
+    fn output_perceptrons(&self) -> u32{
+        return 1.0 as u32;
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+}
 
 
 impl Serialize for SequentialModel {

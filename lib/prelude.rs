@@ -40,6 +40,7 @@ pub use crate::activations::*;
 pub use crate::serializationtensor::*;
 pub use crate::layer::selfattention::*;
 pub use crate::preprocessing::featurescaling::*;
+pub use crate::*;
 
 pub use crate::rand_array;
 pub use crate::Model;

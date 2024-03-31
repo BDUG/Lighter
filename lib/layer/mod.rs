@@ -6,3 +6,4 @@ pub mod flatten;
 pub mod recurrentlayer;
 pub mod embeddinglayer;
 pub mod selfattention;
+pub mod sparsemoe;
