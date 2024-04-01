@@ -33,6 +33,7 @@ To use it as library just call 'cargo add candlelighter'
 | - | [Attention](./docs/attention.MD)    |  &#x1F3C3;    | TNN 1st throw  |
 | - | [MoE switch](./docs/moe.MD)   |  &#x1F3C3;    | ENN 1st throw             |
 | - |  [Feature masking and -quantization](./docs/masking.MD)   |  &#x1F3C3;    | -             |
+| Parallel model (in sense of split) |  -   |  &#x1F3C3;    | -             |
 | Parallel model |  [Merging](./docs/modelmerging.MD)      |  &#x1F3C3;    | -             | 
 | - |  [Model fine tuning](./docs/finetuning.MD)      |  &#x1F3C3;    | -             | 
 
