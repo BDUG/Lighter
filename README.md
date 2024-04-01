@@ -31,7 +31,7 @@ To use it as library just call 'cargo add candlelighter'
 | - | Regulation   |  &#9989;      | -             | 
 | - | [Feature embedding](./docs/embedding.MD)     |  &#9989;      | S2S 1st throw |
 | - | [Attention](./docs/attention.MD)    |  &#x1F3C3;    | TNN 1st throw  |
-| - | [MoE switch](./docs/moe.MD)   |  &#x1F3C3;    | ENN 1st throw             |
+| - | [Mixture of Experts](./docs/moe.MD)   |  &#x1F3C3;    | ENN 1st throw             |
 | - |  [Feature masking and -quantization](./docs/masking.MD)   |  &#x1F3C3;    | -             |
 | Parallel model (in sense of split) |  -   |  &#x1F3C3;    | -             |
 | Parallel model |  [Merging](./docs/modelmerging.MD)      |  &#x1F3C3;    | -             | 
