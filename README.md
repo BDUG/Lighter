@@ -22,7 +22,7 @@ To use it as library just call 'cargo add candlelighter'
 |-----| --------------|---------------|---------------|
 | Sequential model | - |   &#9989;     |     |
 | - | Feature scaling      |  &#x1F3C3;     | DNN and TNN             |
-| - | Dense (aka feed forward network, short FFN)        |  &#9989;      | DNN           |
+| - | Dense        |  &#9989;      | DNN           |
 | - | Convolution  |  &#9989;      | CNN           |
 | - | Pooling      |  &#9989;      | -             |
 | - | Normalization|  &#9989;      | -             |
@@ -35,8 +35,6 @@ To use it as library just call 'cargo add candlelighter'
 | - |  [Feature masking and -quantization](./docs/masking.MD)   |  &#x1F3C3;    | -             |
 | Parallel model |  [Merging](./docs/modelmerging.MD)      |  &#x1F3C3;    | -             | 
 | - |  [Model fine tuning](./docs/finetuning.MD)      |  &#x1F3C3;    | -             | 
-
-
 
 
 # License
