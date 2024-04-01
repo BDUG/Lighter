@@ -28,7 +28,7 @@ We will support different attention approaches. [Candle](https://github.com/hugg
 
 | Type                  | From where                                                                                        |  
 |-----------------------|---------------------------------------------------------------------------------------------------|
-| SparseMoe         | Can be found in Candle [here](https://github.com/huggingface/candle/blob/main/candle-transformers/src/models/qwen2_moe.rs) and [here](https://github.com/huggingface/candle/blob/main/candle-transformers/src/models/mixtral.rs). Only run a few tasks (aka top k experts) and teh other will be *nulled*. |
+| SparseMoe         | Not integrated, because of own implementation - Can be found in Candle [here](https://github.com/huggingface/candle/blob/main/candle-transformers/src/models/qwen2_moe.rs) and [here](https://github.com/huggingface/candle/blob/main/candle-transformers/src/models/mixtral.rs). Only run a few tasks (aka top k experts) and teh other will be *nulled*. |
 | Multi Task Moe         | **N/A** in Candal. Run multiple tasks in parallel and collects each results individually. |
 | Gated Moe         | **N/A** in Candle. Not only performance an expert selection, but also adapts the trainign process. |
 | Hierachical Moe         | **N/A** in Candle. Stacks experts to evolutionary determine a result. |

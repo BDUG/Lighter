@@ -18,28 +18,24 @@ To use it as library just call 'cargo add candlelighter'
 
 # Supported Layer types
 
-| Type         |      State    |  Example      | 
-|--------------|---------------|---------------|
-| Feature scaling      |  &#x1F3C3;     | DNN and TNN             |
-| Dense (aka feed forward network, short FFN)        |  &#9989;      | DNN           |
-| Convolution  |  &#9989;      | CNN           |
-| Pooling      |  &#9989;      | -             |
-| Normalization|  &#9989;      | -             |
-| Flatten      |  &#9989;      | -             | 
-| Recurrent    |  &#9989;      | RNN 1st throw |  
-| Regulation   |  &#9989;      | -             | 
-| [Feature embedding](./docs/embedding.MD)     |  &#9989;      | S2S 1st throw |
-| [Attention](./docs/attention.MD)    |  &#x1F3C3;    | TNN 1st throw  |
-| [MoE switch](./docs/moe.MD)   |  &#x1F3C3;    | ENN 1st throw             |
-| Masking      |  &#x1F3C3;    | -             |
-| Merging      |  &#x1F3C3;    | -             | 
-| Fine tuning      |  &#x1F3C3;    | -             | 
+| Meta Layer | Type         |      State    |  Example      | 
+|-----| --------------|---------------|---------------|
+| Sequential model | - |   &#9989;     |     |
+| - | Feature scaling      |  &#x1F3C3;     | DNN and TNN             |
+| - | Dense (aka feed forward network, short FFN)        |  &#9989;      | DNN           |
+| - | Convolution  |  &#9989;      | CNN           |
+| - | Pooling      |  &#9989;      | -             |
+| - | Normalization|  &#9989;      | -             |
+| - | Flatten      |  &#9989;      | -             | 
+| - | Recurrent    |  &#9989;      | RNN 1st throw |  
+| - | Regulation   |  &#9989;      | -             | 
+| - | [Feature embedding](./docs/embedding.MD)     |  &#9989;      | S2S 1st throw |
+| - | [Attention](./docs/attention.MD)    |  &#x1F3C3;    | TNN 1st throw  |
+| - | [MoE switch](./docs/moe.MD)   |  &#x1F3C3;    | ENN 1st throw             |
+| - |  [Feature masking and -quantization](./docs/masking.MD)   |  &#x1F3C3;    | -             |
+| Parallel model |  [Merging](./docs/modelmerging.MD)      |  &#x1F3C3;    | -             | 
+| - |  [Model fine tuning](./docs/finetuning.MD)      |  &#x1F3C3;    | -             | 
 
-
-Notes:
-- **Masking** here is about handling sequences with varying lengths. 
-- In comparison **Merging** refers to the concept of *ensembling learning* that combines multiple models to create a stronger and more robust one (aka model merging). 
-- **Fine tuning** is about updating only selected neural network parameter e.g., while improving a given *foundation model*. Plan is to provide a DoRA and a LoRA implementation via Reinforcement Learning (RL, aka Transformer Reinforcement Learning, short TRL). 
 
 
 

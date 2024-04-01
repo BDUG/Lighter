@@ -2,12 +2,12 @@ We will support different attention approaches. [Candle](https://github.com/hugg
 
 | Type                  | From where                                                                                        |  
 |-----------------------|---------------------------------------------------------------------------------------------------|
-| SelfAttention         | [here](https://github.com/huggingface/candle/blob/main/candle-transformers/src/models/wuerstchen/attention_processor.rs) for one input sequence. Depending on the implementation it is also called a *dot product attention* or *global attention*.| 
-| CrossAttention (aka Co-Attention)       | [here](https://github.com/huggingface/candle/blob/main/candle-transformers/src/models/stable_diffusion/attention.rs) for multiple input sequences | 
-| CausalSelfAttention   | [here](https://github.com/huggingface/candle/blob/main/candle-transformers/src/models/llama2_c.rs) for parts of one or multiple input sequences e.g., only all token before the present. Depending on the implementation also called *local attention*. | 
-| MultiHeadAttention   | [here](https://github.com/huggingface/candle/blob/main/candle-transformers/src/models/segment_anything/transformer.rs) for multiple concerns/ questions | 
-| MultiQueryAttention   | [here](https://github.com/huggingface/candle/blob/main/candle-transformers/src/models/chatglm.rs) for multiple concerns/ questions but knowing the other concerns/ questions | 
-| GroupQueryAttention   | [here](https://github.com/huggingface/candle/blob/main/candle-transformers/src/models/quantized_mpt.rs) for building logical groups between the questions | 
+| SelfAttention         | Integrated- [here](https://github.com/huggingface/candle/blob/main/candle-transformers/src/models/wuerstchen/attention_processor.rs) for one input sequence. Depending on the implementation it is also called a *dot product attention* or *global attention*.| 
+| CrossAttention (aka Co-Attention)       | Not Integrated so far - [here](https://github.com/huggingface/candle/blob/main/candle-transformers/src/models/stable_diffusion/attention.rs) for multiple input sequences | 
+| CausalSelfAttention   | Not Integrated so far - [here](https://github.com/huggingface/candle/blob/main/candle-transformers/src/models/llama2_c.rs) for parts of one or multiple input sequences e.g., only all token before the present. Depending on the implementation also called *local attention*. | 
+| MultiHeadAttention   | Not Integrated so far - [here](https://github.com/huggingface/candle/blob/main/candle-transformers/src/models/segment_anything/transformer.rs) for multiple concerns/ questions | 
+| MultiQueryAttention   | Not Integrated so far - [here](https://github.com/huggingface/candle/blob/main/candle-transformers/src/models/chatglm.rs) for multiple concerns/ questions but knowing the other concerns/ questions | 
+| GroupQueryAttention   | Not Integrated so far - [here](https://github.com/huggingface/candle/blob/main/candle-transformers/src/models/quantized_mpt.rs) for building logical groups between the questions | 
 
 
 *Terms*:

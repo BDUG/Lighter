@@ -29,7 +29,7 @@ pub fn simple_cnn(){
     
     let mut name2 = String::new();
     name2.push_str("maxpooling 1");
-    layers.push(Box::new(Pooling::new( PoolingType::AVERAGE, 2, 2, &dev, &varmap, name2)));
+    layers.push(Box::new(Pooling::new( PoolingType::MAX, 2, 2, &dev, &varmap, name2)));
 
     let mut name5 = String::new();
     name5.push_str("flatten");
@@ -60,7 +60,7 @@ pub fn simple_cnn(){
     model.fit(
         scaling.min_max_normalization_other(tmp_x), 
         scaling.min_max_normalization_other(tmp_y), 
-        100, 
+        4000, 
         false);
 
 
