@@ -16,5 +16,6 @@ pub mod layers;
 pub mod recurrenttypes;
 pub mod embeddingtypes;
 pub mod topk;
+pub mod parallelmodeltypes;
 
 

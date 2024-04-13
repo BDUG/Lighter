@@ -5,6 +5,7 @@ pub struct SelfAttention {
     pub query_dim: usize,
     pub heads: usize,
     pub dim_head: usize,
+    pub input_size: usize,
     pub attention: Attention,
     pub key_value_mapping: candle_nn::Linear,
     pub kv: Tensor,
@@ -34,6 +35,7 @@ impl SelfAttentionTrait for SelfAttention {
             query_dim: query_dim,
             heads: heads,
             dim_head: dim_head,
+            input_size: input_size,
             attention : tmp_attention.unwrap(),
             key_value_mapping: tmp_key_value_mapping,
             kv : Tensor::ones((batchsize,channel,height,weight), DType::F32,&device).unwrap(),
@@ -57,7 +59,7 @@ impl Trainable for SelfAttention {
         // FIX ME: Candle class is made for image, we here have it 
         // more in a general purpose, due to that we have to convert 
         // the result back into is original shape.
-        let mut rst = self.attention.forward(&input.reshape((batchsize,channel,height,weight)).unwrap().clone(), & self.kv.reshape((1,weight,1)).unwrap().clone()).unwrap().clone();
+        let rst = self.attention.forward(&input.reshape((batchsize,channel,height,weight)).unwrap().clone(), & self.kv.reshape((1,weight,1)).unwrap().clone()).unwrap().clone();
         return rst.reshape( (height,weight) ).unwrap(); 
     }
 

@@ -39,6 +39,7 @@ pub use crate::convolutiontypes::*;
 pub use crate::activations::*;
 pub use crate::serializationtensor::*;
 pub use crate::layer::selfattention::*;
+pub use crate::parallelmodeltypes::*;
 pub use crate::preprocessing::featurescaling::*;
 pub use crate::*;
 

@@ -1,7 +1,7 @@
 
 #[allow(unused)]
 use crate::prelude::*;
-use crate::{preprocessing::features::{Features, FeaturesTrait}};
+use crate::preprocessing::features::{Features, FeaturesTrait};
 use layer::sparsemoe::{SparseMoE, SparseMoETrait};
 use ndarray_rand::rand_distr::num_traits::ToPrimitive;
 use rand::distributions::Distribution;
@@ -25,7 +25,7 @@ pub fn generatedata(sizeofsequence: usize, numofelements: usize, delimiter: f32)
     let mut result: Vec<ENNDataitem> = vec![];
 
     let vals: Vec<u64> = (0..numofelements as u64).collect();
-    for (i, _value) in vals.iter().enumerate() {
+    for (_i, _value) in vals.iter().enumerate() {
         let index_1 = Uniform::new(0, sizeofsequence/ 2);
         let index_2 = Uniform::new(sizeofsequence/2, sizeofsequence);
    

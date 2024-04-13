@@ -52,14 +52,14 @@ pub fn generate_sum_pair(batchsize: usize) -> Vec<Vec<Vec<f32>>> {
     let mut input_vector : Vec<Vec<f32>> = Vec::new();
     let mut output_vector : Vec<Vec<f32>> = Vec::new();
 
-    for i in 0..batchsize {
+    for _i in 0..batchsize {
         let n1: f32 = rng.gen_range(0.0..100.0);
         let n2: f32 = rng.gen_range(0.0..100.0);
         let mut input_pair : Vec<f32> = Vec::new();
         input_pair.push(n1);
         input_pair.push(n2);
     
-        let mut sum: f32 = n1.add(n2);
+        let sum: f32 = n1.add(n2);
         let mut output_pair : Vec<f32> = Vec::new();
         output_pair.push(sum);
 
@@ -84,20 +84,8 @@ pub fn simple_rnn2() {
     let y_tmp: &Vec<Vec<f32>> = generateddata.get(1).unwrap();
 
     let _xsize : usize = x_tmp.len();
-    /*for i in 0..xsize{
-        let mut sentense : String = String::new();
-        for j in 0..2 {
-            let val = x_tmp.get(i).unwrap().get(j).unwrap().to_owned();
-            let val_a = val.to_string();
-            sentense.push(val_a);
-            if j.eq(&0) {
-                sentense.push("+");
-            }
-        }
-    }*/
-
-    let mut x = to_tensor(x_tmp, &dev);
-    let mut y = to_tensor(y_tmp, &dev);
+    let x = to_tensor(x_tmp, &dev);
+    let y = to_tensor(y_tmp, &dev);
 
     let mut layers: Vec<Box<dyn Trainable>> = vec![];
     let mut name1 = String::new();

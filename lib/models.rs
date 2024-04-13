@@ -1,235 +1,16 @@
 
 use flatten::embeddinglayer::{Embed, EmbeddingLayerTrait};
+use layer::sparsemoe::{SparseMoE, SparseMoETrait};
 use ndarray_rand::rand_distr::num_traits::ToPrimitive;
 
 #[allow(unused)]
 use crate::prelude::*;
 use crate::recurrenttypes::RecurrentType;
 use crate::embeddingtypes::EmbeddingType;
-
-pub struct SequentialModel {
-    pub layers: Vec<Box<dyn Trainable>> ,
-    pub optimizer: Optimizers,
-    pub loss: Loss,
-    pub varmap: VarMap,
-}
-
-impl SequentialModel {
-    pub fn new(varmap: VarMap,layers: Vec<Box<dyn Trainable>>) -> Self {
-        Self {
-            layers: layers,
-            optimizer: Optimizers::None(0.0),
-            loss: Loss::None,
-            varmap: varmap,
-        }
-    }
-
-    pub fn summary(&self) {
-        let mut total_param = 0;
-        let mut res = "\nModel Sequential\n".to_string();
-        res.push_str("-------------------------------------------------------------\n");
-        res.push_str("Layer (Type)\t\t Output shape\t\t No.of params\n");
-        for layer in self.layers.iter() {
-            let a = layer.input_perceptrons();
-            let b = layer.output_perceptrons();
-            total_param += a + b;
-            res.push_str(&format!("{}\t\t\t  (None, {})\t\t  {}\n", layer.typ(), b, a + b));
-        }
-        res.push_str("-------------------------------------------------------------\n");
-        res.push_str(&format!("Total params: {}\n", total_param));
-        println!("{}", res);
-    }
-
-    pub fn compile(&mut self, optimizer: Optimizers, loss: Loss) {
-        self.optimizer = optimizer;
-        self.loss = loss;
-    }
-
-    pub fn fit(&mut self, x: Tensor, _y: Tensor, epochs: usize ,_verbose: bool) {
-        let mut bestloss = f32::MAX;
-        let mut snapshot:Option< VarMap > = None;
-        for _i in 0..epochs {
-            if _verbose{
-                println!("Epoche {}",_i);
-            }
-            for elementnumber in 0.. x.dims().get(0).unwrap().to_usize().unwrap() {
-                let mut input_checked = match x.get(elementnumber) {
-                    Ok(element) => element,
-                    Err(error) => panic!("{}",error.to_string()),
-                };
-
-                let mut output_checked = match _y.get(elementnumber) {
-                    Ok(element) => element,
-                    Err(error) => panic!("{}",error.to_string()),
-                };
-                
-                for layer in self.layers.iter() {
-                    //println!("{} ",layer.typ());
-                    input_checked = layer.forward(input_checked).clone();
-                }
-                if input_checked.shape().dims().len() == 1{
-                    input_checked = input_checked.reshape((1,input_checked.shape().dims().get(0).unwrap().to_owned() )).unwrap();
-                }
-                if output_checked.shape().dims().len() == 1{
-                    if self.loss.eq(&Loss::MSE){
-                        if input_checked.dims().len() == 2{
-                            output_checked = output_checked.reshape((1,
-                                output_checked.shape().dims().get(0).unwrap().to_owned() 
-                                )
-                            ).unwrap();
-                        }
-                        else if input_checked.dims().len() == 3{
-                            output_checked = output_checked.reshape((1,
-                                1,
-                                output_checked.shape().dims().get(0).unwrap().to_owned() 
-                                )
-                            ).unwrap();
-                        }
-                        else if input_checked.dims().len() == 4{
-                            output_checked = output_checked.reshape((1,
-                                1,
-                                1, 
-                                output_checked.shape().dims().get(0).unwrap().to_owned(), 
-                                )
-                            ).unwrap();
-                        }
-                        else {
-                            panic!("Not supported dimension");
-                        }
-                    }
-                }
-                
-                if self.loss.ne(&Loss::MSE){
-                    panic!("Not supported so far");
-                }
-                input_checked = input_checked.to_dtype(DType::F32).unwrap();
-                output_checked = output_checked.to_dtype(DType::F32).unwrap();
-
-                // Apply loss
-                let lossed =  match self.loss {
-                    Loss::MSE => candle_nn::loss::mse(&input_checked, &output_checked),
-                    Loss::NLL => candle_nn::loss::nll(&input_checked, &output_checked),
-                    Loss::BinaryCrossEntropyWithLogit => candle_nn::loss::binary_cross_entropy_with_logit(&input_checked, &output_checked),
-                    Loss::CrossEntropy => candle_nn::loss::cross_entropy(&input_checked, &output_checked),
-                    Loss::None => todo!(),
-                };
-
-                let lossed_checked = match lossed {
-                    Ok(lossed) => lossed,
-                    Err(error) => panic!("{}",error.to_string()),
-                };
-
-                let enumvalue: (f64,u8) = match self.optimizer {
-                    Optimizers::SGD(lrate) => (lrate, 1),
-                    Optimizers::Adam(lrate) => (lrate,2),
-                    Optimizers::None(_lrate) => (0.0,0),
-                };
-
-                // Apply optimizer 
-                // Also see https://github.com/huggingface/candle/issues/1509#issuecomment-1872916766
-                if enumvalue.1 == 1 {
-                    let mut optimized: SGD = candle_nn::SGD::new(self.varmap.all_vars(), enumvalue.0).unwrap();
-                    let _ = optimized.backward_step(&lossed_checked);
-                    if bestloss.ge(&lossed_checked.to_vec0::<f32>().unwrap()){
-                        if lossed_checked.to_vec0::<f32>().unwrap().ne(&0.0) {
-                            bestloss = lossed_checked.to_vec0::<f32>().unwrap();
-                            snapshot = Some(self.varmap.clone());
-                        }
-                    }
-                }
-                else if enumvalue.1 == 2 {
-                    let adamw_params = candle_nn::ParamsAdamW {
-                        lr: enumvalue.0,
-                        ..Default::default()
-                    };
-                    let mut optimized: AdamW = candle_nn::AdamW::new(self.varmap.all_vars(), adamw_params).unwrap();
-                    let _ = optimized.backward_step(&lossed_checked);
-                    if bestloss.ge(&lossed_checked.to_vec0::<f32>().unwrap()){
-                        if lossed_checked.to_vec0::<f32>().unwrap().ne(&0.0) {
-                            bestloss = lossed_checked.to_vec0::<f32>().unwrap();
-                            snapshot = Some(self.varmap.clone());
-                        }
-                    }
-                }
-            }
-        }
-        println!("Best loss {} ",bestloss);
-        self.varmap= snapshot.unwrap().clone();
-    }
+use crate::parallelmodeltypes::ParallelModelType;
 
 
-    pub fn predict(&self, mut x: Tensor) -> Vec<Tensor> {
-        
-        let mut result: Vec<Tensor> = Vec::new();
-
-        for elementnumber in 0.. x.dims().get(0).unwrap().to_usize().unwrap() {
-            let mut _original_data = x.clone();
-            let mut input_checked = match _original_data.get(elementnumber) {
-                Ok(element) => element,
-                Err(error) => panic!("{}",error.to_string()),
-            };
-            for layer in self.layers.iter() {
-                input_checked = layer.forward(input_checked);
-            }
-            result.push(input_checked);
-        }
-
-        return result;
-    }
-
-    pub fn save_weights(&self, path: &str) {
-        let mut toserialize : Vec<SerializedTensor> = Vec::new();
-
-        let tmp = self.varmap.data();
-        let data = tmp.lock().unwrap();
-        for element in data.keys(){
-            let raw_tensor = data.get_key_value(element).unwrap().1;
-            let tensor = raw_tensor.flatten_all().unwrap();
-            let ser_tensor = SerializedTensor {
-                name: element.clone(),
-                dimension : raw_tensor.shape().dims().to_vec(),
-                values : tensor.to_vec1::<f32>().unwrap(),
-            };
-            toserialize.push(ser_tensor);
-        }
-      
-        let mut file = File::create(path).unwrap();
-        let j = serde_json::to_string(&toserialize).unwrap();
-        file.write(&j.as_bytes()).unwrap();
-    }
-
-    pub fn load_weights(&self, path: &str, device: &Device) {
-        let value = fs::read_to_string(path).unwrap();
-
-        let json: serde_json::Value =
-            serde_json::from_str(&value).unwrap();
-        
-        let a: Vec<Value> = json.as_array().unwrap().to_vec();
-        for i in 0..a.len(){
-            let b = a.get(i).unwrap();
-            let c = b.as_object().unwrap();
-            let mut d = c.values().rev();
-            let _values = d.next().unwrap().as_array();
-            let _name = d.next().unwrap().as_str();
-            let _dimension = d.next().unwrap().as_array();
-            let values = match _values {
-                Some(x) => x.clone().iter().map(|x| x.as_f64().unwrap() as f32).collect::<Vec<f32>>(),
-                None    => panic!("Unknown state"),
-            };
-            let name = match _name {
-                Some(x) => x, //.clone(),
-                None    => panic!("Unknown state"),
-            };
-            self.varmap.data().lock().unwrap().insert(name.to_string(),Var::new(values, &device).unwrap());
-        }
-    }
-
-    pub fn save_model(&self, path: &str) {
-        let mut file = File::create(path).unwrap();
-        let j = serde_json::to_string(&self).unwrap();
-        file.write(&j.as_bytes()).unwrap();
-    }
-
+trait ModelSerialization {
 
     fn extractjson_value_u64(&self, elem: &serde_json::Map<String, Value>, key: &str) -> u64{
         let value: Option<(&String, &Value)> = elem.get_key_value(key);
@@ -288,6 +69,583 @@ impl SequentialModel {
         panic!("Unknown type");
     }
 
+    fn save_weights_generic(&self, varmap: &VarMap, path: &str) {
+        let mut toserialize : Vec<SerializedTensor> = Vec::new();
+
+        let tmp = varmap.data();
+        let data = tmp.lock().unwrap();
+        for element in data.keys(){
+            let raw_tensor = data.get_key_value(element).unwrap().1;
+            let tensor = raw_tensor.flatten_all().unwrap();
+            let ser_tensor = SerializedTensor {
+                name: element.clone(),
+                dimension : raw_tensor.shape().dims().to_vec(),
+                values : tensor.to_vec1::<f32>().unwrap(),
+            };
+            toserialize.push(ser_tensor);
+        }
+      
+        let mut file = File::create(path).unwrap();
+        let j = serde_json::to_string(&toserialize).unwrap();
+        file.write(&j.as_bytes()).unwrap();
+    }
+
+    fn load_weights_generic(&self, path: &str, device: &Device) -> VarMap{
+        let varmap: VarMap = VarMap::new();
+        let value = fs::read_to_string(path).unwrap();
+
+        let json: serde_json::Value =
+            serde_json::from_str(&value).unwrap();
+        
+        let a: Vec<Value> = json.as_array().unwrap().to_vec();
+        for i in 0..a.len(){
+            let b = a.get(i).unwrap();
+            let c = b.as_object().unwrap();
+            let mut d = c.values().rev();
+            let _values = d.next().unwrap().as_array();
+            let _name = d.next().unwrap().as_str();
+            let _dimension = d.next().unwrap().as_array();
+            let values = match _values {
+                Some(x) => x.clone().iter().map(|x| x.as_f64().unwrap() as f32).collect::<Vec<f32>>(),
+                None    => panic!("Unknown state"),
+            };
+            let name = match _name {
+                Some(x) => x, //.clone(),
+                None    => panic!("Unknown state"),
+            };
+            varmap.data().lock().unwrap().insert(name.to_string(),Var::new(values, &device).unwrap());
+        }
+        return varmap;
+    }
+
+    fn load_layer (&self, new_type: String, elem: &serde_json::Map<String, Value>, device: &Device, layers: &mut Vec<Box<dyn Trainable>>, varmap: &VarMap) {
+        if new_type.eq("Dense"){
+            let new_perceptrons = self.extractjson_value_u64(elem, "perceptrons");
+            let new_previousperceptrons = self.extractjson_value_u64(elem, "previousperceptrons");
+            let new_name = self.extractjson_value_str(elem, "name");
+            let tmp_activation = self.extractjson_value_str(elem, "activation");
+            let new_activation = Activations::from_string(tmp_activation.to_string());
+    
+            let tmp = Box::new(Dense::new(new_perceptrons as usize, new_previousperceptrons as usize, new_activation, device, varmap, new_name));
+            layers.push(tmp);
+        }
+        else if new_type.eq("Pooling"){
+            let new_poolingtype = self.extractjson_value_str(elem, "poolingtype");
+            let new_kernelsize = self.extractjson_value_u64(elem, "kernelsize") as usize;
+            let new_stride = self.extractjson_value_u64(elem, "stride") as usize;
+            let new_name = self.extractjson_value_str(elem, "name");
+        
+            let tmp = Box::new(Pooling::new(PoolingType::from_string(new_poolingtype), new_kernelsize, new_stride as usize, &device, varmap, new_name));
+            layers.push(tmp);
+        }
+        else if new_type.eq("Recurrent"){
+            let new_recurrenttype = self.extractjson_value_str(elem, "recurrenttype");
+            let new_indimension = self.extractjson_value_u64(elem, "indimension") as usize;
+            let new_hiddendimension = self.extractjson_value_u64(elem, "hiddendimension") as usize;
+            let new_name = self.extractjson_value_str(elem, "name");
+        
+            let tmp = Box::new(Recurrent::new(RecurrentType::from_string(new_recurrenttype), new_indimension, new_hiddendimension, &device, varmap, new_name));
+            layers.push(tmp);
+        }
+        else if new_type.eq("Embedding"){
+            let new_inputdimension = self.extractjson_value_u64(elem, "inputdimension") as usize;
+            let new_hiddendimension = self.extractjson_value_u64(elem, "hiddendimension") as usize;
+            let new_name = self.extractjson_value_str(elem, "name");
+        
+            let tmp = Box::new(Embed::new(EmbeddingType::Standard, new_inputdimension, new_hiddendimension, &device, varmap, new_name));
+            layers.push(tmp);
+        }
+        else if new_type.eq("Normalization"){
+            let new_axis = self.extractjson_value_u64(elem, "axis") as u64;
+            let new_name = self.extractjson_value_str(elem, "name");
+        
+            let tmp = Box::new(Normalization::new( new_axis, &device, varmap, new_name));
+            layers.push(tmp);
+        }
+        else if new_type.eq("Conv"){
+            let new_tensor = self.extractjson_value_serializedtensor(elem, "kernel", device);
+            let new_dimensionality = self.extractjson_value_u64(elem, "dimensionality") as usize;
+            let new_padding = self.extractjson_value_u64(elem, "padding") as usize;
+            let new_stride = self.extractjson_value_u64(elem, "stride") as usize;
+            let new_dilation = self.extractjson_value_u64(elem, "dilation") as usize;
+            let new_groups = self.extractjson_value_u64(elem, "groups") as usize;
+            let new_name = self.extractjson_value_str(elem, "name");
+    
+            let tmp = Box::new(Conv::new(new_tensor, new_dimensionality,new_padding, new_stride, new_dilation, new_groups,device, varmap,new_name));
+            layers.push(tmp);
+        }
+        else if new_type.eq("SelfAttention"){
+            let new_query_dim = self.extractjson_value_u64(elem, "query_dim") as usize;
+            let new_heads = self.extractjson_value_u64(elem, "heads") as usize;
+            let new_dim_head = self.extractjson_value_u64(elem, "dim_head") as usize;
+            let new_input_size = self.extractjson_value_u64(elem, "input_size") as usize;
+            let new_name = self.extractjson_value_str(elem, "name");
+    
+            let tmp = Box::new(SelfAttention::new(new_query_dim, new_heads, new_dim_head, new_input_size, device, varmap,new_name));
+            layers.push(tmp);
+        }
+        else if new_type.eq("SparseMoE"){
+            let new_num_of_experts = self.extractjson_value_u64(elem, "num_of_experts") as usize;
+            let new_input_dim = self.extractjson_value_u64(elem, "input_dim") as usize;
+            let new_output_dim = self.extractjson_value_u64(elem, "output_dim") as usize;
+            let new_name = self.extractjson_value_str(elem, "name");
+    
+            let tmp = Box::new(SparseMoE::new(new_num_of_experts, new_input_dim, new_output_dim, device, varmap,new_name));
+            layers.push(tmp);
+        }
+        else{
+            panic!("Unknown layer type {}",new_type.to_string())
+        }
+    }
+
+}
+
+
+/// A trait for objects that can make predictions based on input data.
+trait Predictable {
+
+    /// Predicts the output for the given input data using the provided layers.
+    ///
+    /// # Arguments
+    ///
+    /// * `layers` - A vector of trainable layers to be used for prediction.
+    /// * `x` - The input data tensor.
+    ///
+    /// # Returns
+    ///
+    /// An optional vector of output tensors representing the predictions. If the prediction fails,
+    /// `None` is returned.
+    fn predicting(&self, layers: &Vec<Box<dyn Trainable>> , x: &Tensor) -> Option<Vec<Tensor>> {
+        let mut result: Vec<Tensor> = Vec::new();
+        for elementnumber in 0.. x.dims().get(0).unwrap().to_usize().unwrap() {
+            let mut _original_data = x.clone();
+            let mut input_checked = match _original_data.get(elementnumber) {
+                Ok(element) => element,
+                Err(error) => panic!("{}",error.to_string()),
+            };
+            for layer in layers.iter() {
+                input_checked = layer.forward(input_checked);
+            }
+            result.push(input_checked);
+        }
+        return Some(result);
+    }
+}
+
+trait Fitable {
+
+    fn fitting(&self, layers: &Vec<Box<dyn Trainable>> ,loss: &Loss, optimizer: &Optimizers,varmap: &VarMap, epochs: usize, _verbose: bool, x: &Tensor, _y: &Tensor) ->VarMap  {
+        let mut bestloss = f32::MAX;
+        let mut snapshot:Option< VarMap > = None;
+        for _i in 0..epochs {
+            if _verbose{
+                println!("Epoche {}",_i);
+            }
+            for elementnumber in 0.. x.dims().get(0).unwrap().to_usize().unwrap() {
+                let mut input_checked = match x.get(elementnumber) {
+                    Ok(element) => element,
+                    Err(error) => panic!("{}",error.to_string()),
+                };
+        
+                let mut output_checked = match _y.get(elementnumber) {
+                    Ok(element) => element,
+                    Err(error) => panic!("{}",error.to_string()),
+                };
+        
+                for layer in layers.iter() {
+                    input_checked = layer.forward(input_checked).clone();
+                }
+                if input_checked.shape().dims().len() == 1{
+                    input_checked = input_checked.reshape((1,input_checked.shape().dims().get(0).unwrap().to_owned() )).unwrap();
+                }
+                if output_checked.shape().dims().len() == 1{
+                    if loss.eq(&Loss::MSE){
+                        if input_checked.dims().len() == 2{
+                            output_checked = output_checked.reshape((1,
+                                output_checked.shape().dims().get(0).unwrap().to_owned() 
+                                )
+                            ).unwrap();
+                        }
+                        else if input_checked.dims().len() == 3{
+                            output_checked = output_checked.reshape((1,
+                                1,
+                                output_checked.shape().dims().get(0).unwrap().to_owned() 
+                                )
+                            ).unwrap();
+                        }
+                        else if input_checked.dims().len() == 4{
+                            output_checked = output_checked.reshape((1,
+                                1,
+                                1, 
+                                output_checked.shape().dims().get(0).unwrap().to_owned(), 
+                                )
+                            ).unwrap();
+                        }
+                        else {
+                            panic!("Not supported dimension");
+                        }
+                    }
+                }
+        
+                if loss.ne(&Loss::MSE){
+                    panic!("Not supported so far");
+                }
+                input_checked = input_checked.to_dtype(DType::F32).unwrap();
+                output_checked = output_checked.to_dtype(DType::F32).unwrap();
+        
+                // Apply loss
+                let lossed =  match loss {
+                    Loss::MSE => candle_nn::loss::mse(&input_checked, &output_checked),
+                    Loss::NLL => candle_nn::loss::nll(&input_checked, &output_checked),
+                    Loss::BinaryCrossEntropyWithLogit => candle_nn::loss::binary_cross_entropy_with_logit(&input_checked, &output_checked),
+                    Loss::CrossEntropy => candle_nn::loss::cross_entropy(&input_checked, &output_checked),
+                    Loss::None => todo!(),
+                };
+        
+                let lossed_checked = match lossed {
+                    Ok(lossed) => lossed,
+                    Err(error) => panic!("{}",error.to_string()),
+                };
+        
+                let enumvalue: (f64,u8) = match optimizer {
+                    Optimizers::SGD(lrate) => (lrate.to_owned(), 1),
+                    Optimizers::Adam(lrate) => (lrate.to_owned(),2),
+                    Optimizers::None(_lrate) => (0.0,0),
+                };
+        
+                // Apply optimizer 
+                // Also see https://github.com/huggingface/candle/issues/1509#issuecomment-1872916766
+                if enumvalue.1 == 1 {
+                    let mut optimized: SGD = candle_nn::SGD::new(varmap.all_vars(), enumvalue.0).unwrap();
+                    let _ = optimized.backward_step(&lossed_checked);
+                    if bestloss.ge(&lossed_checked.to_vec0::<f32>().unwrap()){
+                        if lossed_checked.to_vec0::<f32>().unwrap().ne(&0.0) {
+                            bestloss = lossed_checked.to_vec0::<f32>().unwrap();
+                            snapshot = Some(varmap.clone());
+                        }
+                    }
+                }
+                else if enumvalue.1 == 2 {
+                    let adamw_params = candle_nn::ParamsAdamW {
+                        lr: enumvalue.0,
+                        ..Default::default()
+                    };
+                    let mut optimized: AdamW = candle_nn::AdamW::new(varmap.all_vars(), adamw_params).unwrap();
+                    let _ = optimized.backward_step(&lossed_checked);
+                    if bestloss.ge(&lossed_checked.to_vec0::<f32>().unwrap()){
+                        if lossed_checked.to_vec0::<f32>().unwrap().ne(&0.0) {
+                            bestloss = lossed_checked.to_vec0::<f32>().unwrap();
+                            snapshot = Some(varmap.clone());
+                        }
+                    }
+                }
+            }
+        }
+        println!("Best loss {} ",bestloss);
+        return snapshot.unwrap();
+    }
+
+}
+
+// ###########################################################################
+// Parallel model 
+// 
+
+pub struct ParallelModel {
+    pub layers: Vec<Box<dyn Trainable>> ,
+    pub types: ParallelModelType,
+    pub optimizer: Optimizers,
+    pub loss: Loss,
+    pub gate: SequentialModel,
+    pub varmap: VarMap
+}
+
+impl Fitable for ParallelModel {
+}
+
+impl Predictable for ParallelModel {
+}
+
+impl ModelSerialization for ParallelModel {
+}
+
+
+impl ParallelModel {
+    pub fn new(types: ParallelModelType, device: &Device, varmap: VarMap, layers: Vec<Box<dyn Trainable>>) -> Self {
+        let _len = layers.len();
+        Self {
+            layers: layers,
+            types: types,
+            optimizer: Optimizers::None(0.0),
+            loss: Loss::None,
+            gate: ParallelModel::create_gate(_len, "gate".to_string(), &varmap, &device),
+            varmap: varmap,
+        }
+    }
+
+    pub fn summary(&self) {
+        let mut total_param = 0;
+        let mut res = "\nModel Parallel\n".to_string();
+        res.push_str("-------------------------------------------------------------\n");
+        res.push_str("Layer (Type)\t\t Output shape\t\t No.of params\n");
+        for layer in self.layers.iter() {
+            let a = layer.input_perceptrons();
+            let b = layer.output_perceptrons();
+            total_param += a + b;
+            res.push_str(&format!("{}\t\t\t  (None, {})\t\t  {}\n", layer.typ(), b, a + b));
+        }
+        res.push_str("-------------------------------------------------------------\n");
+        res.push_str(&format!("Total params: {}\n", total_param));
+        println!("{}", res);
+    }
+
+    pub fn compile(&mut self, optimizer: Optimizers, loss: Loss) {
+        self.optimizer = optimizer;
+        self.loss = loss;
+    }
+
+
+    pub fn fit(&mut self, x: Tensor, _y: Tensor, epochs: usize ,_verbose: bool) {
+        if self.types == ParallelModelType::Split {  
+            self.varmap = self.fitting(&self.layers, &self.loss, &self.optimizer, &self.varmap, epochs, _verbose, &x, &_y);
+        }
+        else {
+            for layer in &mut self.layers {
+                layer.forward(x.clone());
+            }
+            let mut _expert_outputs_new: Vec<Tensor> = Vec::new();
+            for _layer in self.layers.iter() {
+                let new_output = _layer.forward(x.clone());
+                _expert_outputs_new.push(new_output);
+            }
+            self.calculate_weighted_sum(x.clone(), &_expert_outputs_new);
+        }
+    }
+
+    pub fn predict(&self, x: Tensor) -> Vec<Tensor> {
+        if self.types == ParallelModelType::Split {
+            if let Some(value) = self.predicting(&self.layers, &x) {
+                return value;
+            }
+        }
+        let mut _expert_outputs_new = Vec::new();
+        for layer in &self.layers {
+            let output = layer.forward(x.clone());
+            _expert_outputs_new.push(output);
+        }
+        let mut result = Vec::new();
+        result.push(self.calculate_weighted_sum(x.clone(), &_expert_outputs_new).clone());
+        return result;
+    }
+
+    fn calculate_weighted_sum(&self, x: Tensor, expert_outputs: &Vec<Tensor>) -> Tensor{
+        let gateoutput = self.gate.forward(x.clone());
+        let mut _gate_outputs = gateoutput.flatten_all().unwrap().to_dtype(DType::F32).unwrap().to_vec1::<f32>().unwrap();
+
+        let mut _expert_result_new: Vec<Tensor> = Vec::new();
+        for (position, _expert_opinion) in expert_outputs.iter().enumerate() {
+            let _votingweight_given_to_expert = _gate_outputs.get(position).unwrap();
+
+            let _expert_opinion_vector = _expert_opinion.flatten_all().unwrap().to_vec1::<f32>().unwrap();
+            let _expert_opinion_result_vetor: Vec<f32> = _expert_opinion_vector.iter().map(|somex| somex * _votingweight_given_to_expert).collect();
+
+            let new_output = Tensor::new(_expert_opinion_result_vetor,x.clone().device()).unwrap();
+            _expert_result_new.push(new_output);
+        }
+        let _first_expert_result_weighted = _expert_result_new.pop().unwrap();
+        let mut _expert_result_weighted_sum = _first_expert_result_weighted.clone();
+        for _expert_result_weighted_element in _expert_result_new {
+            _expert_result_weighted_sum = _expert_result_weighted_sum.add(&_expert_result_weighted_element).unwrap();
+        }
+        return _expert_result_weighted_sum.clone().reshape(x.clone().shape()).unwrap();
+    }
+
+
+    fn create_gate(input_dim: usize,  name: String, varmap: &VarMap, dev: &Device) -> SequentialModel {
+        let mut layers: Vec<Box<dyn Trainable>> = vec![];
+
+        let mut name1 = String::new();
+        name1.push_str("fc1_gate");
+        name1.push_str(&name);
+        layers.push(Box::new(Dense::new(input_dim/2, input_dim, Activations::Relu, &dev, &varmap, name1 )));
+        let mut name2 = String::new();
+        name2.push_str("fc2_gate");
+        name2.push_str(&name);
+ 
+        layers.push(Box::new(Dense::new(input_dim/2, input_dim/2, Activations::Relu, &dev, &varmap, name2 )));
+
+        return SequentialModel::new(varmap.clone(), layers);
+    }
+
+
+    pub fn save_weights(&self, path: &str) {
+        self.save_weights_generic(&self.varmap, path);
+    }
+
+    pub fn load_weights(&mut  self, path: &str, device: &Device) {
+        self.varmap = self.load_weights_generic(path, device);
+    }
+
+
+    pub fn save_model(&self, path: &str) {
+        let mut file = File::create(path).unwrap();
+        let j = serde_json::to_string(&self).unwrap();
+        file.write(&j.as_bytes()).unwrap();
+    }
+
+    pub fn load_model(&self, path: &str, device : &Device) -> ParallelModel {
+        let value = fs::read_to_string(path).unwrap();
+        let json: serde_json::Value =
+            serde_json::from_str(&value).unwrap();
+        
+        let _value_map = match json {
+            Value::Object(ref map) => map,
+            _ => panic!("Unknown state"),
+        };
+        let numberoflayers_string = _value_map.get_key_value("layers");
+        let rst = match numberoflayers_string {
+            Some(x) => x.1,
+            None    => panic!("Unknown state"),
+        };
+        let varmap = VarMap::new();
+        let mut layers: Vec<Box<dyn Trainable>> = vec![];
+        let layerslist = rst.as_array().unwrap();
+        for i in 0..layerslist.len(){
+            let elem = layerslist.get(i).unwrap().as_object().unwrap();
+
+            let new_type = self.extractjson_value_str(elem, "type");
+
+            self.load_layer(new_type, elem, device, &mut layers, &self.varmap);
+        }
+        let tmp_optimizer = _value_map.get_key_value("optimizer").unwrap().1;
+        let new_optimizer: Optimizers;
+        if tmp_optimizer.is_object(){
+            let tmp_optimizer_obj = tmp_optimizer.as_object().unwrap();
+            if !tmp_optimizer_obj.get_key_value("SGD").is_none() {
+                let learning_rate = self.extractjson_value_f64(tmp_optimizer_obj, "SGD");
+                new_optimizer = Optimizers::SGD(learning_rate);
+            }      
+            else if !tmp_optimizer_obj.get_key_value("Adam").is_none() {
+                let learning_rate = self.extractjson_value_f64(tmp_optimizer_obj, "Adam");
+                new_optimizer = Optimizers::Adam(learning_rate);
+            }         
+            else if !tmp_optimizer_obj.get_key_value("None").is_none() {
+                let learning_rate = self.extractjson_value_f64(tmp_optimizer_obj, "None");
+                new_optimizer = Optimizers::None(learning_rate);
+            }   
+            else {
+                panic!("undefined optimizer");
+            } 
+        }
+        else {
+            new_optimizer = Optimizers::from_string(self.extractjson_value_str(_value_map, "optimizer"));
+        }
+        
+        let new_loss = self.extractjson_value_str(_value_map, "loss");
+
+        let mut new_model= ParallelModel::new(self.types.clone(), device, varmap,layers);
+        new_model.compile(new_optimizer, Loss::from_string(new_loss));
+        return new_model;
+    }
+  
+}
+
+
+impl Serialize for ParallelModel {
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<<S as Serializer>::Ok, <S as Serializer>::Error>
+    where
+        S: Serializer,
+    {
+        let mut state = serializer.serialize_struct("parallel", 3)?;
+        let _ = state.serialize_field("types", &self.types);
+        let _ = state.serialize_field("optimizer", &self.optimizer);
+        let _ = state.serialize_field("loss", &self.loss);      
+        let _ = state.serialize_field("layers", &self.layers);
+        return Ok(state.end().unwrap());
+    }
+}
+
+
+// ###########################################################################
+// Sequential model 
+// 
+
+
+pub struct SequentialModel {
+    pub layers: Vec<Box<dyn Trainable>> ,
+    pub optimizer: Optimizers,
+    pub loss: Loss,
+    pub varmap: VarMap
+}
+
+
+impl Fitable for SequentialModel { 
+}
+
+impl Predictable for SequentialModel {
+}
+
+impl ModelSerialization for SequentialModel {
+}
+
+
+impl SequentialModel {
+    pub fn new(varmap: VarMap,layers: Vec<Box<dyn Trainable>>) -> Self {
+        Self {
+            layers: layers,
+            optimizer: Optimizers::None(0.0),
+            loss: Loss::None,
+            varmap: varmap,
+        }
+    }
+
+    pub fn summary(&self) {
+        let mut total_param = 0;
+        let mut res = "\nModel Sequential\n".to_string();
+        res.push_str("-------------------------------------------------------------\n");
+        res.push_str("Layer (Type)\t\t Output shape\t\t No.of params\n");
+        for layer in self.layers.iter() {
+            let a = layer.input_perceptrons();
+            let b = layer.output_perceptrons();
+            total_param += a + b;
+            res.push_str(&format!("{}\t\t\t  (None, {})\t\t  {}\n", layer.typ(), b, a + b));
+        }
+        res.push_str("-------------------------------------------------------------\n");
+        res.push_str(&format!("Total params: {}\n", total_param));
+        println!("{}", res);
+    }
+
+    pub fn compile(&mut self, optimizer: Optimizers, loss: Loss) {
+        self.optimizer = optimizer;
+        self.loss = loss;
+    }
+
+    pub fn fit(&mut self, x: Tensor, _y: Tensor, epochs: usize ,_verbose: bool) {
+        self.varmap = self.fitting(&self.layers, &self.loss, &self.optimizer, &self.varmap, epochs, _verbose, &x, &_y);
+    }
+
+    pub fn predict(&self, x: Tensor) -> Vec<Tensor> {    
+        if let Some(value) = self.predicting(&self.layers, &x) {
+            return value;
+        }
+        return Vec::new();
+    }
+
+    pub fn save_weights(&self, path: &str) {
+        self.save_weights_generic(&self.varmap, path);
+    }
+
+    pub fn load_weights(&mut self, path: &str, device: &Device) {
+        self.varmap = self.load_weights_generic(path, device);
+    }
+
+    pub fn save_model(&self, path: &str) {
+        let mut file = File::create(path).unwrap();
+        let j = serde_json::to_string(&self).unwrap();
+        file.write(&j.as_bytes()).unwrap();
+    }
+
+
     pub fn load_model(&self, path: &str, device : &Device) -> SequentialModel {
         let value = fs::read_to_string(path).unwrap();
         let json: serde_json::Value =
@@ -310,64 +668,7 @@ impl SequentialModel {
 
             let new_type = self.extractjson_value_str(elem, "type");
 
-            if new_type.eq("Dense"){
-                let new_perceptrons = self.extractjson_value_u64(elem, "perceptrons");
-                let new_previousperceptrons = self.extractjson_value_u64(elem, "previousperceptrons");
-                let new_name = self.extractjson_value_str(elem, "name");
-                let tmp_activation = self.extractjson_value_str(elem, "activation");
-                let new_activation = Activations::from_string(tmp_activation.to_string());
-                
-                let tmp = Box::new(Dense::new(new_perceptrons as usize, new_previousperceptrons as usize, new_activation, device, &self.varmap, new_name));
-                layers.push(tmp);
-            }
-            else if new_type.eq("Pooling"){
-                let new_poolingtype = self.extractjson_value_str(elem, "poolingtype");
-                let new_kernelsize = self.extractjson_value_u64(elem, "kernelsize") as usize;
-                let new_stride = self.extractjson_value_u64(elem, "stride") as usize;
-                let new_name = self.extractjson_value_str(elem, "name");
-        
-                let tmp = Box::new(Pooling::new(PoolingType::from_string(new_poolingtype), new_kernelsize, new_stride as usize, &device, &self.varmap, new_name));
-                layers.push(tmp);
-            }
-            else if new_type.eq("Recurrent"){
-                let new_recurrenttype = self.extractjson_value_str(elem, "recurrenttype");
-                let new_indimension = self.extractjson_value_u64(elem, "indimension") as usize;
-                let new_hiddendimension = self.extractjson_value_u64(elem, "hiddendimension") as usize;
-                let new_name = self.extractjson_value_str(elem, "name");
-        
-                let tmp = Box::new(Recurrent::new(RecurrentType::from_string(new_recurrenttype), new_indimension, new_hiddendimension, &device, &self.varmap, new_name));
-                layers.push(tmp);
-            }
-            else if new_type.eq("Embedding"){
-                let new_inputdimension = self.extractjson_value_u64(elem, "inputdimension") as usize;
-                let new_hiddendimension = self.extractjson_value_u64(elem, "hiddendimension") as usize;
-                let new_name = self.extractjson_value_str(elem, "name");
-        
-                let tmp = Box::new(Embed::new(EmbeddingType::Standard, new_inputdimension, new_hiddendimension, &device, &self.varmap, new_name));
-                layers.push(tmp);
-            }
-            else if new_type.eq("Normalization"){
-                let new_axis = self.extractjson_value_u64(elem, "axis") as u64;
-                let new_name = self.extractjson_value_str(elem, "name");
-        
-                let tmp = Box::new(Normalization::new( new_axis, &device, &self.varmap, new_name));
-                layers.push(tmp);
-            }
-            else if new_type.eq("Conv"){
-                let new_tensor = self.extractjson_value_serializedtensor(elem, "kernel", device);
-                let new_dimensionality = self.extractjson_value_u64(elem, "dimensionality") as usize;
-                let new_padding = self.extractjson_value_u64(elem, "padding") as usize;
-                let new_stride = self.extractjson_value_u64(elem, "stride") as usize;
-                let new_dilation = self.extractjson_value_u64(elem, "dilation") as usize;
-                let new_groups = self.extractjson_value_u64(elem, "groups") as usize;
-                let new_name = self.extractjson_value_str(elem, "name");
-
-                let tmp = Box::new(Conv::new(new_tensor, new_dimensionality,new_padding, new_stride, new_dilation, new_groups,device,&self.varmap,new_name));
-                layers.push(tmp);
-            }
-            else{
-                panic!("Unknown layer type {}",new_type.to_string())
-            }
+            self.load_layer(new_type, elem, device, &mut layers, &self.varmap);
         }
         let tmp_optimizer = _value_map.get_key_value("optimizer").unwrap().1;
         let new_optimizer: Optimizers;
@@ -399,17 +700,13 @@ impl SequentialModel {
         new_model.compile(new_optimizer, Loss::from_string(new_loss));
         return new_model;
     }
+
   
-    pub fn buildname(&self, name: &str,  number: i32) -> String {
-        let mut result = String::from(name);
-        result.push_str(&number.to_string());
-        return result;
-    }
   
 
 }
 
-impl Trainable for SequentialModel {
+impl Trainable for SequentialModel{
     fn forward(&self, input: Tensor) -> Tensor {
         let mut input_checked = input.clone();
         for layer in self.layers.iter() {

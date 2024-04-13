@@ -26,7 +26,7 @@ pub fn simple_s2s() {
     assert_eq!(sentence_splitted_sorted, ["Life", "dessert", "eat", "first", "is", "short"]);
     let mut dc: HashMap<&str, usize> = HashMap::new();
     for (pos, e) in sentence_splitted_sorted.iter().enumerate() {
-        dc.insert(e.clone(), pos);
+        dc.insert(e, pos);
     }
     let mut resulttensor : Vec<u32> = Vec::new();
     for (_pos, e) in sentence_splitted.iter().enumerate() {

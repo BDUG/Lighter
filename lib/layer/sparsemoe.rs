@@ -1,6 +1,3 @@
-use std::ops::Mul;
-
-use candle_core::scalar::TensorOrScalar;
 
 #[allow(unused)]
 pub use crate::prelude::*;
@@ -10,6 +7,8 @@ use self::topk::{TopK, TopKTrait};
 
 pub struct SparseMoE {
     pub experts: Vec<SequentialModel>,
+    pub input_dim: usize, 
+    pub output_dim: usize, 
     pub gate: SequentialModel,
     pub device: Device,
     pub name: String,
@@ -76,6 +75,8 @@ impl SparseMoETrait for SparseMoE {
 
         Self {
             experts : tmp_experts,
+            input_dim: input_dim,
+            output_dim: output_dim,
             gate: SparseMoE::create_gate(input_dim, varmap, device),
             device : device.clone(),
             name: tmp_name.clone(),
@@ -108,8 +109,6 @@ impl Trainable for SparseMoE {
 
             let new_output = Tensor::new(_expert_opinion_result_vetor,input.device()).unwrap();
             _expert_outputs_new.push(new_output);
-
-            println!("Test");
         }
         let _first_expert_result_weighted = _expert_outputs_new.pop().unwrap();
         let mut _expert_result_weighted_sum = _first_expert_result_weighted.clone();

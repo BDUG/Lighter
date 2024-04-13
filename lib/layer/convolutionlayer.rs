@@ -21,7 +21,7 @@ pub trait ConvLayerTrait {
 
 
 impl ConvLayerTrait for Conv {
-    fn new(kernel: Tensor, dimensionality: usize, padding: usize, stride: usize, dilation: usize, groups: usize, device: &Device, varmap : &VarMap, name: String) -> Self {
+    fn new(kernel: Tensor, dimensionality: usize, padding: usize, stride: usize, dilation: usize, groups: usize, device: &Device, _varmap : &VarMap, name: String) -> Self {
         let tmp_name = name.clone();
         Self {
             kernel: kernel,
@@ -36,7 +36,7 @@ impl ConvLayerTrait for Conv {
         }
     }
 
-    fn new2(kerneltype: ConvolutionTypes, dimensionality: usize, padding: usize, stride: usize, dilation: usize, groups: usize, device: &Device, varmap : &VarMap, name: String) -> Self {
+    fn new2(kerneltype: ConvolutionTypes, dimensionality: usize, padding: usize, stride: usize, dilation: usize, groups: usize, device: &Device, _varmap : &VarMap, name: String) -> Self {
         let tmp_name = name.clone();
         Self {
             kernel: Tensor::new(&[[3f32, 0., 0.]], &device).unwrap(),

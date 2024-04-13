@@ -24,7 +24,7 @@ pub fn generatedata(sizeofsequence: usize, numofelements: usize, delimiter: f32)
     let mut result: Vec<TNNDataitem> = vec![];
 
     let vals: Vec<u64> = (0..numofelements as u64).collect();
-    for (i, _value) in vals.iter().enumerate() {
+    for (_i, _value) in vals.iter().enumerate() {
         let index_1 = Uniform::new(0, sizeofsequence/ 2);
         let index_2 = Uniform::new(sizeofsequence/2, sizeofsequence);
    

@@ -40,7 +40,7 @@ impl Trainable for Pooling {
         let weight = *input.shape().dims().get(2).unwrap();
         tmp = tmp.reshape( (1,timesteps,height,weight) ).unwrap();
 
-        let mut result =  match self.poolingtype {
+        let result =  match self.poolingtype {
             PoolingType::MAX => tmp.avg_pool2d_with_stride(self.kernelsize, self.stride).unwrap(),
             PoolingType::AVERAGE => tmp.max_pool2d_with_stride(self.kernelsize, self.stride).unwrap(),
         };

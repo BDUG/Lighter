@@ -7,8 +7,8 @@ use candlelighter::prelude::*;
 fn save_model_test() -> anyhow::Result<()> {
     let varmap = VarMap::new();
     let dev = candle_core::Device::cuda_if_available(0).unwrap();  
-    let x: [[[f32; 2]; 1]; 6] = [ [[1., 2.]] , [[2., 1.]] ,[[3., 4.]], [[5., 6.]], [[5., 5.]] , [[4., 5.]]];
-    let y: [[[f32; 1]; 1]; 6] = [ [[3.]], [[3.]], [[7.]], [[11.]] , [[10.]], [[9.]]];
+    let _x: [[[f32; 2]; 1]; 6] = [ [[1., 2.]] , [[2., 1.]] ,[[3., 4.]], [[5., 6.]], [[5., 5.]] , [[4., 5.]]];
+    let _y: [[[f32; 1]; 1]; 6] = [ [[3.]], [[3.]], [[7.]], [[11.]] , [[10.]], [[9.]]];
 
     let mut layers: Vec<Box<dyn Trainable>> = vec![];
     let mut name1 = String::new();
@@ -29,7 +29,7 @@ fn save_model_test() -> anyhow::Result<()> {
     // Load the saved model and train
 
     let dev2 = candle_core::Device::cuda_if_available(0).unwrap();  
-    let model2 = model.load_model("./test.model",&dev2);
+    let mut model2 = model.load_model("./test.model",&dev2);
     model2.load_weights("./test.weights",&dev);
 
     anyhow::Ok(())
@@ -40,8 +40,8 @@ fn save_model_test() -> anyhow::Result<()> {
 fn summary_model_test() -> anyhow::Result<()> {
     let varmap = VarMap::new();
     let dev = candle_core::Device::cuda_if_available(0).unwrap();  
-    let x: [[[f32; 2]; 1]; 6] = [ [[1., 2.]] , [[2., 1.]] ,[[3., 4.]], [[5., 6.]], [[5., 5.]] , [[4., 5.]]];
-    let y: [[[f32; 1]; 1]; 6] = [ [[3.]], [[3.]], [[7.]], [[11.]] , [[10.]], [[9.]]];
+    let _x: [[[f32; 2]; 1]; 6] = [ [[1., 2.]] , [[2., 1.]] ,[[3., 4.]], [[5., 6.]], [[5., 5.]] , [[4., 5.]]];
+    let _y: [[[f32; 1]; 1]; 6] = [ [[3.]], [[3.]], [[7.]], [[11.]] , [[10.]], [[9.]]];
 
     let mut layers: Vec<Box<dyn Trainable>> = vec![];
     let mut name1 = String::new();
