@@ -1,5 +1,4 @@
 
-use std::env;
 
 #[allow(unused)]
 use candlelighter::prelude::*;
@@ -13,7 +12,7 @@ fn main() {
 
     let menu = menu(vec![
         label("Select an example ..."),
-        scroll("examples", vec!["Simple DNN", "Simple CNN","Simple RNN","Simple RNN2","Simple S2S","Simple TNN","Simple ENN"]),
+        scroll("examples", vec!["Simple DNN", "Simple CNN","Simple RNN","Simple RNN2","Simple S2S","Simple TNN","Simple ENN","Simple PNN"]),
         button("exit")
     ]);
     run(&menu);
@@ -42,6 +41,9 @@ fn main() {
         }
         else if mm.selection_value("examples").eq("Simple ENN") {
             candlelighter::examples::simple_enn::simple_enn();
+        }
+        else if mm.selection_value("examples").eq("Simple PNN") {
+            candlelighter::examples::simple_pnn::simple_pnn();
         }
     }
 }
