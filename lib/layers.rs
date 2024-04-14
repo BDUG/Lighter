@@ -1,6 +1,7 @@
 use flatten::embeddinglayer::Embed;
 use layer::sparsemoe::SparseMoE;
 
+use crate::layer;
 #[allow(unused)]
 use crate::prelude::*;
 

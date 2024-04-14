@@ -1,8 +1,7 @@
 
 #[allow(unused)]
 use crate::prelude::*;
-use crate::{layer, preprocessing::features::{Features, FeaturesTrait}};
-use layer::sparsemoe::{SparseMoE, SparseMoETrait};
+use crate::preprocessing::features::{Features, FeaturesTrait};
 use ndarray_rand::rand_distr::num_traits::ToPrimitive;
 use rand::distributions::Distribution;
 use crate::preprocessing;
@@ -69,7 +68,7 @@ pub fn to_tensor(input: &Vec<Vec<f32>>, device: &Device) -> Tensor{
     return Tensor::from_vec(result, (dimension1,1,dimension2), device ).unwrap().clone();
 }
 
-pub fn simple_enn() {
+pub fn simple_pnn() {
     let sizeofsequence = 20;
     let numofelements = 20000;
 
@@ -90,17 +89,45 @@ pub fn simple_enn() {
     }
 
 
-    let mut layers: Vec<Box<dyn Trainable>> = vec![];
+    let mut layers: Vec<Box<dyn Trainable>> = Vec::new();
+
+
+    let mut name1 = String::new();
+    name1.push_str("fc0");
+    layers.push(Box::new(Dense::new(sizeofsequence, sizeofsequence, Activations::Relu, &dev, &varmap, name1 )));
+
 
     let mut name2 = String::new();
-    name2.push_str("attention1");
-    // Query dim tells us what the attention sees from the given sequence 
-    layers.push(Box::new(SparseMoE::new(10, sizeofsequence, sizeofsequence, &dev, &varmap,  name2)));
-    
+    name2.push_str("split");
+
+
+    let mut name2_1 = String::new();
+    name2_1.push_str("split_fc1");
+    let mut name4 = String::new();
+    name4.push_str("fc2");
+
+    let mut layers_parallel: Vec<Box<dyn Trainable>> = Vec::new();
+
+    let mut name2_1 = String::new();
+    name2_1.push_str("split_fc1");
+    let mut name2_2 = String::new();
+    name2_2.push_str("split_fc2");
+
+    let varmap2 = VarMap::new();
+    layers_parallel.push(Box::new(Dense::new(sizeofsequence, sizeofsequence, Activations::Relu, &dev, &varmap2, name2_1 )));
+    layers_parallel.push(Box::new(Dense::new(sizeofsequence, sizeofsequence, Activations::Relu, &dev, &varmap2, name2_2 )));
+
+    layers.push(Box::new(ParallelModel::new(ParallelModelType::Split, &dev, varmap2, layers_parallel)));
+
+    // FIX ME
+    let varmap3 = VarMap::new();
+    let layers_parallel2: Vec<Box<dyn Trainable>> = Vec::new();
+    layers.push(Box::new(ParallelModel::new(ParallelModelType::Merge, &dev, varmap3, layers_parallel2)));
+
     let mut name3 = String::new();
     name3.push_str("fc1");
     layers.push(Box::new(Dense::new(4, sizeofsequence, Activations::Relu, &dev, &varmap, name3 )));
-    
+
     let mut name4 = String::new();
     name4.push_str("fc2");
     layers.push(Box::new(Dense::new(1, 4, Activations::Relu, &dev, &varmap, name4 )));
@@ -119,7 +146,6 @@ pub fn simple_enn() {
         scaling.min_max_normalization_other(tmp_y), 
         10, 
         false);
-    
 
     
     let mut featurehelper_x_test = Features::new(dev.clone());

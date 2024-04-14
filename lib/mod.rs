@@ -5,6 +5,8 @@ pub mod examples;
 pub mod preprocessing;
 
 pub mod models;
+pub mod parallelmodel;
+pub mod sequentialmodel;
 pub mod optimizers;
 pub mod losses;
 pub mod poolingtypes;
@@ -17,5 +19,3 @@ pub mod recurrenttypes;
 pub mod embeddingtypes;
 pub mod topk;
 pub mod parallelmodeltypes;
-
-

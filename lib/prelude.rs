@@ -25,6 +25,8 @@ pub use crate::layer::*;
 
 pub use crate::layers::*;
 pub use crate::models::*;
+pub use crate::parallelmodel::*;
+pub use crate::sequentialmodel::*;
 pub use crate::layer::convolutionlayer::*;
 pub use crate::layer::denselayer::*;
 pub use crate::layer::poolinglayer::*;
@@ -41,7 +43,6 @@ pub use crate::serializationtensor::*;
 pub use crate::layer::selfattention::*;
 pub use crate::parallelmodeltypes::*;
 pub use crate::preprocessing::featurescaling::*;
-pub use crate::*;
 
 pub use crate::rand_array;
 pub use crate::Model;

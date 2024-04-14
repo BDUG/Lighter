@@ -2,7 +2,7 @@
 #[allow(unused)]
 pub use crate::prelude::*;
 
-use self::topk::{TopK, TopKTrait};
+use crate::topk::{TopK, TopKTrait};
 
 
 pub struct SparseMoE {
@@ -16,17 +16,18 @@ pub struct SparseMoE {
 
 
 pub trait SparseMoETrait {
-    fn create_expert(input_dim: usize, output_dim: usize, name: String, varmap: &VarMap, dev: &Device) -> SequentialModel;
-    fn create_gate(input_dim: usize, varmap: &VarMap, dev: &Device) -> SequentialModel;
+    fn create_expert(input_dim: usize, output_dim: usize, name: String, dev: &Device) -> SequentialModel;
+    fn create_gate(input_dim: usize,  dev: &Device) -> SequentialModel;
     fn new(num_of_experts: usize, input_dim: usize, output_dim: usize, device: &Device, varmap : &VarMap, name: String) -> Self;
 }
 
 
 impl SparseMoETrait for SparseMoE {
 
-    fn create_expert(input_dim: usize, output_dim: usize, name: String, varmap: &VarMap, dev: &Device) -> SequentialModel {     
-        let mut layers: Vec<Box<dyn Trainable>> = vec![];
+    fn create_expert(input_dim: usize, output_dim: usize, name: String, dev: &Device) -> SequentialModel {     
+        let mut layers: Vec<Box<dyn Trainable > > = Vec::new();
 
+        let varmap = VarMap::new();
         let mut name1 = String::new();
         name1.push_str("fc1_");
         name1.push_str(&name);
@@ -40,21 +41,22 @@ impl SparseMoETrait for SparseMoE {
         name3.push_str(&name);
         layers.push(Box::new(Dense::new(output_dim, input_dim/4, Activations::Relu, &dev, &varmap, name3 )));
 
-        return SequentialModel::new(varmap.clone(), layers);
+        return SequentialModel::new(varmap, layers);
     }
 
-    fn create_gate(input_dim: usize,  varmap: &VarMap, dev: &Device) -> SequentialModel {
-        let mut layers: Vec<Box<dyn Trainable>> = vec![];
+    fn create_gate(input_dim: usize, dev: &Device) -> SequentialModel {
+        let mut layers: Vec<Box<dyn Trainable>> = Vec::new();
+        let varmap = VarMap::new();
 
         let mut name1 = String::new();
         name1.push_str("fc1_gate");
         layers.push(Box::new(Dense::new(input_dim/2, input_dim, Activations::Relu, &dev, &varmap, name1 )));
         let mut name2 = String::new();
         name2.push_str("fc2_gate");
- 
+
         layers.push(Box::new(Dense::new(input_dim/2, input_dim/2, Activations::Relu, &dev, &varmap, name2 )));
 
-        return SequentialModel::new(varmap.clone(), layers);
+        SequentialModel::new(varmap, layers)
     }
 
 
@@ -70,14 +72,14 @@ impl SparseMoETrait for SparseMoE {
         for _i in 0..num_of_experts {
             let mut _name2: String = name1.clone();
             _name2.push_str(&_i.to_string());
-            tmp_experts.push(SparseMoE::create_expert(input_dim, output_dim, _name2, varmap, device));
+            tmp_experts.push(SparseMoE::create_expert(input_dim, output_dim, _name2, device));
         }
 
         Self {
             experts : tmp_experts,
             input_dim: input_dim,
             output_dim: output_dim,
-            gate: SparseMoE::create_gate(input_dim, varmap, device),
+            gate: SparseMoE::create_gate(input_dim, device),
             device : device.clone(),
             name: tmp_name.clone(),
         }
@@ -130,8 +132,9 @@ impl Trainable for SparseMoE {
         return 1.0 as u32;
     }
 
-    fn as_any(&self) -> &dyn Any {
-        self
+    fn as_any(&self) -> &(dyn Any + 'static) {
+        todo!();
+        //self
     }
     
 }
