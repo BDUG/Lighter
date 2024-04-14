@@ -26,15 +26,15 @@ To use it as library just call 'cargo add candlelighter'
 | - | Convolution  |  &#9989;      | CNN           |
 | - | Pooling      |  &#9989;      | -             |
 | - | Normalization|  &#9989;      | -             |
-| - | Flatten      |  &#9989;      | -             | 
+| - | Flatten      |  &#9989;      | -             |  
 | - | Recurrent    |  &#9989;      | RNN 1st throw |  
 | - | Regulation   |  &#9989;      | -             | 
 | - | [Feature embedding](./docs/embedding.MD)     |  &#9989;      | S2S 1st throw |
 | - | [Attention](./docs/attention.MD)    |  &#x1F3C3;    | TNN 1st throw  |
 | - | [Mixture of Experts](./docs/moe.MD)   |  &#x1F3C3;    | ENN 1st throw             |
 | - |  [Feature masking and -quantization](./docs/masking.MD)   |  &#x1F3C3;    | -             |
-| Parallel model (in sense of split) |  -   |  &#x1F3C3;    | -             |
-| Parallel model |  [Merging](./docs/modelmerging.MD)      |  &#x1F3C3;    | -             | 
+| Parallel model (in sense of split) |  -   |  &#x1F3C3;    | PNN 1st throw           | 
+| Parallel model |  [Merging](./docs/modelmerging.MD)      |  &#x1F3C3;    | PNN 1st throw             | 
 | - |  [Model fine tuning](./docs/finetuning.MD)      |  &#x1F3C3;    | -             | 
 
 
