@@ -14,7 +14,6 @@ pub use serde_json::Value;
 pub use serde::{Serializer, Serialize, Deserialize};
 
 pub use ndarray::*;
-pub use ndarray::prelude::*;
 pub use ndarray_rand::RandomExt;
 pub use ndarray_rand::rand_distr::Uniform;
 
@@ -35,7 +34,6 @@ pub use crate::layer::recurrentlayer::*;
 pub use crate::layer::flatten::*;
 pub use crate::optimizers::*;
 pub use crate::losses::*;
-pub use crate::utils::*;
 pub use crate::poolingtypes::*;
 pub use crate::convolutiontypes::*;
 pub use crate::activations::*;
