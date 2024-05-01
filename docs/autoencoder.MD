@@ -1,0 +1,1 @@
+https://github.com/huggingface/candle/blob/fa06f5f5f9a05c8d0c246e761e94a73680c510a6/candle-transformers/src/models/stable_diffusion/vae.rs#L2

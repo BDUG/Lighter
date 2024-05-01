@@ -29,6 +29,8 @@ To use it as library just call 'cargo add candlelighter'
 | - | Flatten      |  &#9989;      | -             |  
 | - | Recurrent    |  &#9989;      | RNN 1st throw |  
 | - | Regulation   |  &#9989;      | -             | 
+| - | Recurrent    |  &#9989;      | RNN 1st throw |  
+| - | Autoencoder   | [&#x1F3C3;](./docs/autoencoder.MD)       | -             | 
 | - | [Feature embedding](./docs/embedding.MD)     |  &#9989;      | S2S 1st throw |
 | - | [Attention](./docs/attention.MD)    |  &#x1F3C3;    | TNN 1st throw  |
 | - | [Mixture of Experts](./docs/moe.MD)   |  &#x1F3C3;    | ENN 1st throw             |
@@ -36,6 +38,8 @@ To use it as library just call 'cargo add candlelighter'
 | Parallel model (in sense of split) |  -   |  &#x1F3C3;    | PNN 1st throw           | 
 | Parallel model |  [Merging](./docs/modelmerging.MD)      |  &#x1F3C3;    | PNN 1st throw             | 
 | - |  [Model fine tuning](./docs/finetuning.MD)      |  &#x1F3C3;    | DNN2 & DNN3            | 
+| Transformer models |  [see](./docs/transformers.MD)     |  &#x1F3C3;    |          | 
+| Reinforcement models |  [see](./docs/reinforcement.MD)     |  &#x1F3C3;    |          | 
 
 
 # License
