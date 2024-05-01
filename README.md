@@ -21,23 +21,23 @@ To use it as library just call 'cargo add candlelighter'
 | Meta Layer | Type         |      State    |  Example      | 
 |-----| --------------|---------------|---------------|
 | Sequential model | - |   &#9989;     |     |
-| - | Feature scaling      |  &#x1F3C3;     | DNN and TNN             |
-| - | Dense        |  &#9989;      | DNN           |
-| - | Convolution  |  &#9989;      | CNN           |
+| - | Feature scaling      |  &#x1F3C3;     | [DNN](./lib/examples/simple_dnn.rs) and [TNN](./lib/examples/simple_tnn.rs)             |
+| - | Dense        |  &#9989;      | [DNN](./lib/examples/simple_dnn.rs)           |
+| - | Convolution  |  &#9989;      | [CNN](./lib/examples/simple_cnn.rs)           |
 | - | Pooling      |  &#9989;      | -             |
 | - | Normalization|  &#9989;      | -             |
 | - | Flatten      |  &#9989;      | -             |  
-| - | Recurrent    |  &#9989;      | RNN 1st throw |  
+| - | Recurrent    |  &#9989;      | [RNN](./lib/examples/simple_rnn.rs) 1st throw |  
 | - | Regulation   |  &#9989;      | -             | 
-| - | Recurrent    |  &#9989;      | RNN 1st throw |  
+| - | Recurrent    |  &#9989;      | [RNN](./lib/examples/simple_rnn.rs) 1st throw |  
 | - | Autoencoder   | [&#x1F3C3;](./docs/autoencoder.MD)       | -             | 
-| - | [Feature embedding](./docs/embedding.MD)     |  &#9989;      | S2S 1st throw |
-| - | [Attention](./docs/attention.MD)    |  &#x1F3C3;    | TNN 1st throw  |
-| - | [Mixture of Experts](./docs/moe.MD)   |  &#x1F3C3;    | ENN 1st throw             |
+| - | [Feature embedding](./docs/embedding.MD)     |  &#9989;      | [S2S](./lib/examples/simple_s2s.rs) 1st throw |
+| - | [Attention](./docs/attention.MD)    |  &#x1F3C3;    | [TNN](./lib/examples/simple_tnn.rs) 1st throw  |
+| - | [Mixture of Experts](./docs/moe.MD)   |  &#x1F3C3;    | [ENN](./lib/examples/simple_enn.rs) 1st throw             |
 | - |  [Feature masking and -quantization](./docs/masking.MD)   |  &#x1F3C3;    | -             |
-| Parallel model (in sense of split) |  -   |  &#x1F3C3;    | PNN 1st throw           | 
-| Parallel model |  [Merging](./docs/modelmerging.MD)      |  &#x1F3C3;    | PNN 1st throw             | 
-| - |  [Model fine tuning](./docs/finetuning.MD)      |  &#x1F3C3;    | DNN2 & DNN3            | 
+| Parallel model (in sense of split) |  -   |  &#x1F3C3;    | [PNN](./lib/examples/simple_pnn.rs) 1st throw           | 
+| Parallel model |  [Merging](./docs/modelmerging.MD)      |  &#x1F3C3;    | [PNN](./lib/examples/simple_pnn.rs) 1st throw             | 
+| - |  [Model fine tuning](./docs/finetuning.MD)      |  &#x1F3C3;    | [DNN2](./lib/examples/simple_dnn.rs) & [DNN3](./lib/examples/simple_dnn.rs)            | 
 | Transformer models |  [see](./docs/transformers.MD)     |  &#x1F3C3;    |          | 
 | Reinforcement models |  [see](./docs/reinforcement.MD)     |  &#x1F3C3;    |          | 
 
