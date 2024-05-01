@@ -19,3 +19,4 @@ pub mod recurrenttypes;
 pub mod embeddingtypes;
 pub mod topk;
 pub mod parallelmodeltypes;
+pub mod densetypes;

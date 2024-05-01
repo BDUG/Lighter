@@ -35,7 +35,7 @@ To use it as library just call 'cargo add candlelighter'
 | - |  [Feature masking and -quantization](./docs/masking.MD)   |  &#x1F3C3;    | -             |
 | Parallel model (in sense of split) |  -   |  &#x1F3C3;    | PNN 1st throw           | 
 | Parallel model |  [Merging](./docs/modelmerging.MD)      |  &#x1F3C3;    | PNN 1st throw             | 
-| - |  [Model fine tuning](./docs/finetuning.MD)      |  &#x1F3C3;    | -             | 
+| - |  [Model fine tuning](./docs/finetuning.MD)      |  &#x1F3C3;    | DNN2 & DNN3            | 
 
 
 # License

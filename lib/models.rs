@@ -343,8 +343,7 @@ pub trait Fitable {
             }
         }
         println!("Best loss {} ",bestloss);
-        // FIXME
-        // self.varmap = snapshot.unwrap();
+        varmap.data().clone_from(&snapshot.clone().unwrap().data());
         return snapshot.unwrap();
     }
 

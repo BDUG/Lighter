@@ -58,8 +58,6 @@ impl SequentialModel {
 
     pub fn fit(&mut self, x: Tensor, _y: Tensor, epochs: usize ,_verbose: bool) {
         self.varmap = self.fitting(&self.layers, &self.loss, &self.optimizer, &self.varmap, epochs, _verbose, &x, &_y);
-
-        //self.fitting(&self.layers, &self.loss, &self.optimizer, &self.varmap, epochs, _verbose, &x, &_y);
     }
 
     pub fn predict(&self, x: Tensor) -> Vec<Tensor> {    
