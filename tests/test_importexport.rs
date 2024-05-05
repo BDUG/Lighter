@@ -1,7 +1,10 @@
 
 
+use std::collections::HashMap;
+
 #[allow(unused)]
 use candlelighter::prelude::*;
+use candlelighter::saveweightstype::SaveWeightsType;
 
 #[test]
 fn save_model_test() -> anyhow::Result<()> {
@@ -21,16 +24,16 @@ fn save_model_test() -> anyhow::Result<()> {
     name3.push_str("fc3");
     layers.push(Box::new(Dense::new(1, 2, Activations::Relu, &dev, &varmap, name3 )));
 
-    let model = SequentialModel::new(varmap, layers);
+    let model = SequentialModel::new(varmap.clone(), layers);
 
     model.save_model("./test.model");
-    model.save_weights("./test.weights");
+    model.save_weights(SaveWeightsType::PlainJSON ,&varmap, "./test.weights");
 
     // Load the saved model and train
 
     let dev2 = candle_core::Device::cuda_if_available(0).unwrap();  
-    let mut model2 = model.load_model("./test.model",&dev2);
-    model2.load_weights("./test.weights",&dev);
+    let model2 = model.load_model("./test.model",&dev2);
+    model2.load_weights(SaveWeightsType::PlainJSON ,"./test.weights",&HashMap::new(), &varmap, &dev);
 
     anyhow::Ok(())
 }
