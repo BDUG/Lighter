@@ -7,3 +7,5 @@ pub mod recurrentlayer;
 pub mod embeddinglayer;
 pub mod selfattention;
 pub mod sparsemoe;
+
+pub mod transformers;

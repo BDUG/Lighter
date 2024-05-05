@@ -30,7 +30,7 @@ To use it as library just call 'cargo add candlelighter'
 | - | Recurrent    |  &#9989;      | [RNN](./lib/examples/simple_rnn.rs) 1st throw |  
 | - | Regulation   |  &#9989;      | -             | 
 | - | Recurrent    |  &#9989;      | [RNN](./lib/examples/simple_rnn.rs) 1st throw |  
-| - | Autoencoder   | [&#x1F3C3;](./docs/autoencoder.MD)       | -             | 
+| - | [Autoencoder](./docs/autoencoder.MD)     | &#x1F3C3;    | -             | 
 | - | [Feature embedding](./docs/embedding.MD)     |  &#9989;      | [S2S](./lib/examples/simple_s2s.rs) 1st throw |
 | - | [Attention](./docs/attention.MD)    |  &#x1F3C3;    | [TNN](./lib/examples/simple_tnn.rs) 1st throw  |
 | - | [Mixture of Experts](./docs/moe.MD)   |  &#x1F3C3;    | [ENN](./lib/examples/simple_enn.rs) 1st throw             |

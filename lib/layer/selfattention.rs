@@ -1,3 +1,5 @@
+use candle_transformers::models::wuerstchen::attention_processor::Attention;
+
 #[allow(unused)]
 pub use crate::prelude::*;
 

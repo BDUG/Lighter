@@ -67,6 +67,7 @@ impl SequentialModel {
         return Vec::new();
     }
 
+    /*
     pub fn save_weights(&self, path: &str) {
         self.save_weights_generic(&self.varmap, path);
     }
@@ -75,6 +76,7 @@ impl SequentialModel {
         //self.varmap = self.load_weights_generic(path, device);
         self.load_weights_generic(path, &self.varmap, device);
     }
+    */
 
     pub fn save_model(&self, path: &str) {
         let mut file = File::create(path).unwrap();

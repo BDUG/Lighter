@@ -2,6 +2,7 @@
 #[allow(unused)]
 use crate::prelude::*;
 
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ParallelModelType {
     Split,
@@ -17,6 +18,6 @@ impl StringConstruction for ParallelModelType {
         else if name.to_lowercase().eq("merge"){
             return ParallelModelType::Merge;
         }
-        panic!("Unknown optimizer {}",name)
+        panic!("Unknown parallel model type {}",name)
     }
 }

@@ -1,5 +1,8 @@
 
+use std::collections::HashMap;
+
 use flatten::embeddinglayer::{Embed, EmbeddingLayerTrait};
+use hf_hub::api::sync::ApiBuilder;
 use layer::sparsemoe::{SparseMoE, SparseMoETrait};
 use ndarray_rand::rand_distr::num_traits::ToPrimitive;
 
@@ -8,6 +11,7 @@ use crate::layer;
 use crate::prelude::*;
 use crate::recurrenttypes::RecurrentType;
 use crate::embeddingtypes::EmbeddingType;
+use crate::saveweightstype::SaveWeightsType;
 
 
 pub trait ModelSerialization {
@@ -69,6 +73,18 @@ pub trait ModelSerialization {
         panic!("Unknown type");
     }
 
+    fn save_weights(&self, weighttype: SaveWeightsType, varmap: &VarMap, path: &str) {
+        if weighttype.eq(&SaveWeightsType::SafeTensor){
+            let _ = varmap.save(path);
+        }
+        else if weighttype.eq(&SaveWeightsType::PlainJSON){
+            self.save_weights_generic(varmap,path);
+        }
+        else {
+            panic!("Unknown type");
+        }
+    }
+
     fn save_weights_generic(&self, varmap: &VarMap, path: &str) {
         let mut toserialize : Vec<SerializedTensor> = Vec::new();
 
@@ -90,7 +106,73 @@ pub trait ModelSerialization {
         file.write(&j.as_bytes()).unwrap();
     }
 
-    fn load_weights_generic(&self, path: &str, varmap: &VarMap, device: &Device) { // -> VarMap
+    fn load_weights(&self, weighttype: SaveWeightsType, path: &str, parameter: &HashMap<String, Value>, varmap: &VarMap, device: &Device) {
+        if parameter.contains_key("clear_weights"){
+            varmap.data().lock().unwrap().clear();
+        }
+
+        if weighttype.eq(&SaveWeightsType::SafeTensor){
+            let mut paths = Vec::new();
+            paths.push(path);
+            {
+                let mut ws = varmap.data().lock().unwrap();
+
+                let tensors =
+                    unsafe { candle_core::safetensors::MmapedSafetensors::multi(&paths).unwrap() };
+                for (name, _) in tensors.tensors() {
+                    let tensor = tensors.load(&name, &device).unwrap();
+                    
+                    ws.insert(name, Var::from_tensor(&tensor).unwrap());
+                }
+            }
+        }
+        else if weighttype.eq(&SaveWeightsType::PlainJSON) {
+            self.load_weights_generic(path, varmap, device);
+        }
+        else if weighttype.eq(&SaveWeightsType::HuggingfaceHub) {
+
+            let mut api = ApiBuilder::new().with_progress(false);
+
+            if parameter.contains_key("hf_token"){
+                api = api.with_token(Some(parameter.get("hf_token").unwrap().to_string()));
+            }
+            if parameter.contains_key("hf_cachedir"){
+                api = api.with_cache_dir(parameter.get("hf_cachedir").unwrap().to_string().into());
+            }
+            else{
+                api = api.with_cache_dir("./tmp".into());
+            }
+
+
+            if !parameter.contains_key("hf_model"){
+                panic!("Unknown hf_model");
+            }
+            let model_id = Some(parameter.get("hf_model").unwrap().to_string().into()).unwrap();
+
+            let repo = api.build().unwrap().model(model_id);
+            let varmapfile = repo.download("model.safetensors").unwrap();//config.json, tokenizer.json,model.safetensors
+
+        
+            let mut paths = Vec::new();
+            paths.push(varmapfile.as_path());
+            {
+                let mut ws = varmap.data().lock().unwrap();
+
+                let tensors =
+                    unsafe { candle_core::safetensors::MmapedSafetensors::multi(&paths).unwrap() };
+                for (name, _) in tensors.tensors() {
+                    let tensor = tensors.load(&name, &device).unwrap();
+                    
+                    ws.insert(name, Var::from_tensor(&tensor).unwrap());
+                }
+            }
+        }
+        else {
+            panic!("Unknown type");
+        }
+    }
+
+    fn load_weights_generic(&self, path: &str, varmap: &VarMap, device: &Device) { // -> VarMap    
         //let varmap: VarMap = VarMap::new();
         varmap.data().lock().unwrap().clear();
         let value = fs::read_to_string(path).unwrap();

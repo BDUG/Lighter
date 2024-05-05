@@ -1,5 +1,13 @@
 Candle Rust source code reflected to the list given here https://huggingface.co/docs/transformers/model_doc/albert
 
+Elements are:
+* Model, format e.g., safetensors: https://github.com/huggingface/safetensors
+    - Config including architecture, format json, see https://huggingface.co/docs/transformers/en/main_classes/configuration
+    - Weights, format e.g., .pkl
+* Dataset
+
+
+
 * Text models e.g.,
     - BERT, https://github.com/huggingface/candle/blob/main/candle-transformers/src/models/bert.rs
     - GPTBigCode, https://github.com/huggingface/candle/blob/main/candle-transformers/src/models/bigcode.rs 

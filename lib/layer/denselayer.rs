@@ -3,7 +3,7 @@
 use std::ops::Div;
 
 use crate::densetypes::DenseType;
-use candle_core::Shape;
+
 #[allow(unused)]
 pub use crate::prelude::*;
 
@@ -36,8 +36,8 @@ impl DenseLayerTrait for Dense {
             denselayer : linear(previousperceptrons, perceptrons,vs.pp(name)).unwrap(),
             device : device.clone(),
             types: DenseType::Standard,
-            a: Tensor::zeros(Shape::from_dims(&[0, 0]), DType::F32, device).unwrap(),
-            b: Tensor::zeros(Shape::from_dims(&[0, 0]), DType::F32, device).unwrap(),
+            a: Tensor::zeros(candle_core::Shape::from_dims(&[0, 0]), DType::F32, device).unwrap(),
+            b: Tensor::zeros(candle_core::Shape::from_dims(&[0, 0]), DType::F32, device).unwrap(),
             alpha: 0.0,
             name: tmp_name.clone(),
         }
@@ -59,8 +59,8 @@ impl DenseLayerTrait for Dense {
 
             let _tmp =  Tensor::rand(0.0, 1.0, (previousperceptrons,_rank), device).unwrap().to_dtype(DType::F32).unwrap().flatten_all().unwrap().to_vec1::<f32>().unwrap();
             let _tmp2: Vec<f32>  = _tmp.iter().map( |x| x * std_dev).collect::<Vec<f32>>();
-            _a = Some(Tensor::new(_tmp2, device).unwrap().reshape(Shape::from_dims(&[_rank,previousperceptrons])).unwrap());
-            _b = Some(Tensor::zeros(Shape::from_dims(&[_rank,previousperceptrons]), DType::F32, device).unwrap());
+            _a = Some(Tensor::new(_tmp2, device).unwrap().reshape(candle_core::Shape::from_dims(&[_rank,previousperceptrons])).unwrap());
+            _b = Some(Tensor::zeros(candle_core::Shape::from_dims(&[_rank,previousperceptrons]), DType::F32, device).unwrap());
         }
 
         Self {

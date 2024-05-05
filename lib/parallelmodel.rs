@@ -149,12 +149,13 @@ impl ParallelModel {
         return SequentialModel::new(varmap, layers);
     }
 
-
+    /*
     pub fn load_weights(&mut self, path: &str, device: &Device) {
         // FIX ME
         //self.varmap = self.load_weights_generic(path, device);
         self.load_weights_generic(path, &self.varmap, device);
     }
+    */
 
     pub fn load_model(&self, path: &str, device : &Device) -> ParallelModel {
         let value = fs::read_to_string(path).unwrap();

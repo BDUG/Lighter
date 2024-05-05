@@ -8,6 +8,7 @@ pub use std::fs::*;
 
 pub use candle_core::*;
 pub use candle_nn::*;
+pub use candle_transformers::models::*;
 
 pub use serde::ser::SerializeStruct;
 pub use serde_json::Value;
@@ -16,8 +17,6 @@ pub use serde::{Serializer, Serialize, Deserialize};
 pub use ndarray::*;
 pub use ndarray_rand::RandomExt;
 pub use ndarray_rand::rand_distr::Uniform;
-
-pub use candle_transformers::models::wuerstchen::attention_processor::*;
 
 pub use crate::examples::*;
 pub use crate::layer::*;
