@@ -5,3 +5,4 @@ pub mod simple_s2s;
 pub mod simple_tnn;
 pub mod simple_enn;
 pub mod simple_pnn;
+pub mod simple_llm;

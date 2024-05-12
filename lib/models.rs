@@ -1,5 +1,6 @@
 
 use std::collections::HashMap;
+use std::path::Path;
 
 use flatten::embeddinglayer::{Embed, EmbeddingLayerTrait};
 use hf_hub::api::sync::ApiBuilder;
@@ -85,6 +86,27 @@ pub trait ModelSerialization {
         }
     }
 
+    fn save_weights_generic_summary(&self, varmap: &VarMap, path: &str) {
+        let mut toserialize : Vec<SerializedTensor> = Vec::new();
+
+        let tmp = varmap.data();
+        let data = tmp.lock().unwrap();
+        for element in data.keys(){
+            let raw_tensor = data.get_key_value(element).unwrap().1;
+            let tensor = raw_tensor.flatten_all().unwrap();
+            let ser_tensor = SerializedTensor {
+                name: element.clone(),
+                dimension : raw_tensor.shape().dims().to_vec(),
+                values : vec![tensor.sum_all().unwrap().to_scalar().unwrap()],
+            };
+            toserialize.push(ser_tensor);
+        }
+      
+        let mut file = File::create(path).unwrap();
+        let j = serde_json::to_string(&toserialize).unwrap();
+        file.write(&j.as_bytes()).unwrap();
+    }
+
     fn save_weights_generic(&self, varmap: &VarMap, path: &str) {
         let mut toserialize : Vec<SerializedTensor> = Vec::new();
 
@@ -106,56 +128,36 @@ pub trait ModelSerialization {
         file.write(&j.as_bytes()).unwrap();
     }
 
-    fn load_weights(&self, weighttype: SaveWeightsType, path: &str, parameter: &HashMap<String, Value>, varmap: &VarMap, device: &Device) {
-        if parameter.contains_key("clear_weights"){
-            varmap.data().lock().unwrap().clear();
-        }
+    fn load_weights(&self, weighttype: SaveWeightsType, parameter: &HashMap<String, Value>, varmap: &VarMap, device: &Device) {
+        
+        varmap.data().lock().unwrap().clear();
 
         if weighttype.eq(&SaveWeightsType::SafeTensor){
             let mut paths = Vec::new();
-            paths.push(path);
+            paths.push(parameter.get("path").unwrap().as_str().unwrap());
             {
                 let mut ws = varmap.data().lock().unwrap();
 
                 let tensors =
                     unsafe { candle_core::safetensors::MmapedSafetensors::multi(&paths).unwrap() };
+
                 for (name, _) in tensors.tensors() {
                     let tensor = tensors.load(&name, &device).unwrap();
                     
-                    ws.insert(name, Var::from_tensor(&tensor).unwrap());
+                    ws.insert(name.clone(), Var::from_tensor(&tensor).unwrap());
+                    
                 }
             }
         }
         else if weighttype.eq(&SaveWeightsType::PlainJSON) {
-            self.load_weights_generic(path, varmap, device);
+            self.load_weights_generic(&parameter.get("path").unwrap().as_str().unwrap(), varmap, device);
         }
         else if weighttype.eq(&SaveWeightsType::HuggingfaceHub) {
-
-            let mut api = ApiBuilder::new().with_progress(false);
-
-            if parameter.contains_key("hf_token"){
-                api = api.with_token(Some(parameter.get("hf_token").unwrap().to_string()));
-            }
-            if parameter.contains_key("hf_cachedir"){
-                api = api.with_cache_dir(parameter.get("hf_cachedir").unwrap().to_string().into());
-            }
-            else{
-                api = api.with_cache_dir("./tmp".into());
-            }
-
-
-            if !parameter.contains_key("hf_model"){
-                panic!("Unknown hf_model");
-            }
-            let model_id = Some(parameter.get("hf_model").unwrap().to_string().into()).unwrap();
-
-            let repo = api.build().unwrap().model(model_id);
-            let varmapfile = repo.download("model.safetensors").unwrap();//config.json, tokenizer.json,model.safetensors
-
-        
             let mut paths = Vec::new();
-            paths.push(varmapfile.as_path());
-            {
+
+            if parameter.contains_key("hf_model.safetensors"){
+                let tmp = parameter.get("hf_model.safetensors").unwrap().as_str().unwrap();
+                paths.push(Path::new(tmp));
                 let mut ws = varmap.data().lock().unwrap();
 
                 let tensors =
@@ -166,6 +168,42 @@ pub trait ModelSerialization {
                     ws.insert(name, Var::from_tensor(&tensor).unwrap());
                 }
             }
+            else {
+                let mut paths2 = Vec::new();
+                let mut api = ApiBuilder::new().with_progress(false);
+
+                if parameter.contains_key("hf_token"){
+                    api = api.with_token(Some(parameter.get("hf_token").unwrap().as_str().unwrap().to_owned()));
+                }
+                if parameter.contains_key("hf_cachedir"){
+                    api = api.with_cache_dir(parameter.get("hf_cachedir").unwrap().as_str().unwrap().into());
+                }
+                else{
+                    api = api.with_cache_dir("./tmp".into());
+                }
+
+                if !parameter.contains_key("hf_model"){
+                    panic!("Unknown hf_model");
+                }
+                let model_id = Some(parameter.get("hf_model").unwrap().as_str().unwrap().into()).unwrap();
+
+                let repo = api.build().unwrap().model(model_id);
+                let varmapfile = repo.download("model.safetensors").unwrap();//config.json, tokenizer.json,model.safetensors
+
+            
+                paths2.push(varmapfile.as_path());
+                let mut ws = varmap.data().lock().unwrap();
+
+                let tensors =
+                    unsafe { candle_core::safetensors::MmapedSafetensors::multi(&paths2).unwrap() };
+                for (name, _) in tensors.tensors() {
+                    let tensor = tensors.load(&name, &device).unwrap();
+                    
+                    ws.insert(name, Var::from_tensor(&tensor).unwrap());
+                }
+
+            }
+
         }
         else {
             panic!("Unknown type");
@@ -174,6 +212,7 @@ pub trait ModelSerialization {
 
     fn load_weights_generic(&self, path: &str, varmap: &VarMap, device: &Device) { // -> VarMap    
         //let varmap: VarMap = VarMap::new();
+        println!("Loading weights from x{}x",path);
         varmap.data().lock().unwrap().clear();
         let value = fs::read_to_string(path).unwrap();
 
@@ -313,6 +352,13 @@ pub trait Predictable {
         }
         return Some(result);
     }
+}
+
+pub trait DoPrediction {
+
+    fn predict(&self, x: &Tensor) -> Option<Vec<Tensor>>;
+    //#[deprecated(since="0.5.0", note="please use `pub fn predict(&self, x: &Tensor) -> Option<Vec<Tensor>>` instead")]
+    //fn predict(&self, x: Tensor) -> Vec<Tensor>; 
 }
 
 pub trait Fitable {

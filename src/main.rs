@@ -5,14 +5,25 @@ use candlelighter::prelude::*;
 use terminal_menu::{menu, label, button, scroll, run, mut_menu};
 
 
-
 fn main() {
-    //env::set_var("RUST_BACKTRACE", "1");
-
-
+    //env::set_var("RUST_BACKTRACE", "1");   
     let menu = menu(vec![
         label("Select an example ..."),
-        scroll("examples", vec!["Simple DNN", "Simple DNN2", "Simple DNN3", "Simple CNN","Simple RNN","Simple RNN2","Simple S2S","Simple TNN","Simple ENN","Simple PNN"]),
+        scroll("examples", 
+            vec![
+                "Simple DNN", 
+                "Simple DNN2", 
+                "Simple DNN3", 
+                "Simple CNN",
+                "Simple RNN",
+                "Simple RNN2",
+                "Simple S2S",
+                "Simple TNN",
+                "Simple ENN",
+                "Simple PNN",
+                "Simple LLM",
+                ]
+            ),
         button("exit")
     ]);
     run(&menu);
@@ -50,6 +61,9 @@ fn main() {
         }
         else if mm.selection_value("examples").eq("Simple PNN") {
             candlelighter::examples::simple_pnn::simple_pnn();
+        }
+        else if mm.selection_value("examples").eq("Simple LLM") {
+            candlelighter::examples::simple_llm::simple_llm();
         }
     }
 }

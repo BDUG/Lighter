@@ -4,9 +4,10 @@ use candle_transformers::models::bert::{BertModel, Config};
 
 use super::berthiddenacttype::BertHiddenActType;
 use super::bertpositionembdtypes::BertPositionEmbeddingType;
+use super::transformermodels::TransformerTrait;
 
 
-pub struct BertLayer {
+pub struct LighterBertModel {
     pub model: BertModel,
     pub vocab_size: usize,
     pub hidden_size: usize,
@@ -26,7 +27,33 @@ pub struct BertLayer {
 }
 
 
-pub trait EmbeddingLayerTrait {
+
+impl Fitable for LighterBertModel {
+}
+
+impl Predictable for LighterBertModel  {
+}
+
+impl ModelSerialization for LighterBertModel  {
+}
+
+impl TransformerTrait for LighterBertModel  {
+}
+
+impl DoPrediction for LighterBertModel {
+    fn predict(&self, x: &Tensor) -> Option<Vec<Tensor>> {
+        // Only time not Spatial
+        let mut _new_x = x.reshape((x.shape().dims()[0], x.shape().dims()[2] ) ).unwrap();
+        _new_x = _new_x.to_dtype(DType::U32).unwrap();
+        let token_type_ids = _new_x.zeros_like().unwrap();
+        let _rst = self.model.forward(&_new_x, &token_type_ids).unwrap();
+        return Some(vec![_rst]);
+        //todo!()
+    }
+}
+
+
+pub trait LighterBertModelTrait {
     fn new(
         vocab_size:usize, 
         hidden_size: usize, 
@@ -48,7 +75,7 @@ pub trait EmbeddingLayerTrait {
 }
 
 
-impl EmbeddingLayerTrait for BertLayer {
+impl LighterBertModelTrait for LighterBertModel {
     fn new(vocab_size:usize, 
         hidden_size: usize, 
         num_hidden_layers: usize, 
@@ -82,48 +109,64 @@ impl EmbeddingLayerTrait for BertLayer {
         let mut configstring = String::new();
         configstring.push_str("{");
 
-        configstring.push_str("\"vocab_size\"=");
+        configstring.push_str("\"vocab_size\":");
         configstring.push_str(vocab_size.to_string().as_str());
+        configstring.push_str(",");
 
-        configstring.push_str("\"hidden_size\"=");
+        configstring.push_str("\"hidden_size\":");
         configstring.push_str(hidden_size.to_string().as_str());
+        configstring.push_str(",");
 
-        configstring.push_str("\"num_hidden_layers\"=");
+        configstring.push_str("\"num_hidden_layers\":");
         configstring.push_str(num_hidden_layers.to_string().as_str());
+        configstring.push_str(",");
 
-        configstring.push_str("\"num_attention_heads\"=");
+        configstring.push_str("\"num_attention_heads\":");
         configstring.push_str(num_attention_heads.to_string().as_str());
+        configstring.push_str(",");
 
-        configstring.push_str("\"intermediate_size\"=");
+        configstring.push_str("\"intermediate_size\":");
         configstring.push_str(intermediate_size.to_string().as_str());
+        configstring.push_str(",");
 
-        configstring.push_str("\"hidden_act\"=");
+        configstring.push_str("\"hidden_act\":");
+        configstring.push_str("\"");
         configstring.push_str(_hiddentype.to_string().as_str());
+        configstring.push_str("\"");
+        configstring.push_str(",");
 
-        configstring.push_str("\"hidden_dropout_prob\"=");
+        configstring.push_str("\"hidden_dropout_prob\":");
         configstring.push_str(hidden_dropout_prob.to_string().as_str());
+        configstring.push_str(",");
 
-        configstring.push_str("\"max_position_embeddings\"=");
+        configstring.push_str("\"max_position_embeddings\":");
         configstring.push_str(max_position_embeddings.to_string().as_str());
+        configstring.push_str(",");
 
-        configstring.push_str("\"type_vocab_size\"=");
+        configstring.push_str("\"type_vocab_size\":");
         configstring.push_str(type_vocab_size.to_string().as_str());
+        configstring.push_str(",");
 
-        configstring.push_str("\"initializer_range\"=");
+        configstring.push_str("\"initializer_range\":");
         configstring.push_str(initializer_range.to_string().as_str());
+        configstring.push_str(",");
 
-        configstring.push_str("\"layer_norm_eps\"=");
+        configstring.push_str("\"layer_norm_eps\":");
         configstring.push_str(layer_norm_eps.to_string().as_str());
+        configstring.push_str(",");
 
-        configstring.push_str("\"pad_token_id\"=");
+        configstring.push_str("\"pad_token_id\":");
         configstring.push_str(pad_token_id.to_string().as_str());
+        configstring.push_str(",");
 
-        configstring.push_str("\"position_embedding_type\"=");
+        configstring.push_str("\"position_embedding_type\":");
+        configstring.push_str("\"");
         configstring.push_str(_positionembeddingtype.to_string().as_str());
+        configstring.push_str("\"");
 
         configstring.push_str("}");
 
-
+        println!("{}", configstring);
         let config: Config = serde_json::from_str(&configstring).unwrap();
 
         let _bertmodel = BertModel::load(vs, &config).unwrap();
@@ -151,28 +194,3 @@ impl EmbeddingLayerTrait for BertLayer {
 }
 
 
-
-impl Trainable for BertLayer {
-    
-    fn forward(&self, input: Tensor) -> Tensor {
-        let token_type_ids = input.zeros_like().unwrap();
-        // TBD: Fix ids to be passed
-        return self.model.forward(&input, &token_type_ids).unwrap();
-    }
-
-    fn typ(&self) -> String {
-        "Bert".into()
-    }
-
-    fn input_perceptrons(&self) -> u32{
-        return 1.0 as u32;
-    }
-    fn output_perceptrons(&self) -> u32{
-        return 1.0 as u32;
-    }
-
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
-    
-}

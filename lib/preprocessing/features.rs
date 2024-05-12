@@ -81,7 +81,8 @@ impl FeaturesTrait for Features {
                         todo!();
                     }
                 }
-                _temporal.push( data2.flatten_all().unwrap().to_vec1::<f32>().unwrap() );
+                let data3 = data2.to_dtype(DType::F32).unwrap();
+                _temporal.push( data3.flatten_all().unwrap().to_vec1::<f32>().unwrap() );
             }
             _rational.push(_temporal);
         }

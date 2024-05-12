@@ -64,7 +64,7 @@ pub fn simple_cnn(){
         false);
 
 
-    let prediction = model.predict(scaling.min_max_normalization_other(x_testtensor));
+    let prediction = model.predict(&scaling.min_max_normalization_other(x_testtensor)).unwrap();
     println!("Prediction: {}", scaling.min_max_normalization_reverse( prediction.get(0).unwrap().clone() ));
     println!("Expected: {}", results.get(0).unwrap() );
 }

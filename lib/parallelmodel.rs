@@ -25,6 +25,24 @@ impl Predictable for ParallelModel  {
 impl ModelSerialization for ParallelModel  {
 }
 
+impl DoPrediction for ParallelModel {
+    fn predict(&self, x: &Tensor) -> Option<Vec<Tensor>> {
+        if self.types == ParallelModelType::Split {
+            if let Some(value) = self.predicting(&self.layers, x) {
+                return Some(value);
+            }
+        }
+        let mut _expert_outputs_new = Vec::new();
+        for layer in &self.layers {
+            let output = layer.forward(x.clone());
+            _expert_outputs_new.push(output);
+        }
+        let mut result = Vec::new();
+        result.push(self.calculate_weighted_sum(x.clone(), &_expert_outputs_new).clone());
+        return Some(result);
+    }
+}
+
 impl ParallelModel {
     pub fn new(types: ParallelModelType, device: &Device, varmap:  VarMap, layers: Vec<Box<dyn Trainable>>)  -> Self {
         let mut _len = 1;
@@ -88,6 +106,7 @@ impl ParallelModel {
         }
     }
 
+    /*
     pub fn predict(&self, x: Tensor) -> Vec<Tensor> {
         if self.types == ParallelModelType::Split {
             if let Some(value) = self.predicting(&self.layers, &x) {
@@ -103,6 +122,7 @@ impl ParallelModel {
         result.push(self.calculate_weighted_sum(x.clone(), &_expert_outputs_new).clone());
         return result;
     }
+    */
 
     fn calculate_weighted_sum(&self, x: Tensor, expert_outputs: &Vec<Tensor>) -> Tensor{
         let gateoutput = self.gate.forward(x.clone());
@@ -219,7 +239,6 @@ impl Trainable for ParallelModel {
     fn forward(&self, input: Tensor) -> Tensor {
         let mut input_checked = input.clone();
         for layer in self.layers.iter() {
-            //println!("{} ",layer.typ());
             input_checked = layer.forward(input_checked).clone();
         }
 

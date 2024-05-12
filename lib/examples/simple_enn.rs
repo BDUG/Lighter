@@ -128,7 +128,7 @@ pub fn simple_enn() {
     featurehelper_x_test.add_feature(_tmp_tensor);
 
     let tmp_tensor = scaling.min_max_normalization_other(featurehelper_x_test.get_data_tensor());
-    let prediction = model.predict(tmp_tensor);
+    let prediction = model.predict(&tmp_tensor).unwrap();
     
     // 6 + 11 = 17 
     println!("Done {}", scaling.min_max_normalization_reverse( prediction.get(0).unwrap().clone() ) );

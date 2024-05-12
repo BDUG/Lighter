@@ -85,7 +85,7 @@ pub fn simple_dnn() {
     featurehelper_x_test.add_feature(_tmp_tensor);
 
     let tmp_tensor = scaling.min_max_normalization_other(featurehelper_x_test.get_data_tensor());
-    let prediction = model.predict(tmp_tensor);
+    let prediction = model.predict(&tmp_tensor).unwrap();
     println!("Prediction: {}", scaling.min_max_normalization_reverse( prediction.get(0).unwrap().clone() ));
 }
 
@@ -146,7 +146,7 @@ pub fn simple_dnn2() {
     featurehelper_x_test.add_feature(_tmp_tensor);
 
     let tmp_tensor = scaling.min_max_normalization_other(featurehelper_x_test.get_data_tensor());
-    let prediction = model.predict(tmp_tensor);
+    let prediction = model.predict(&tmp_tensor).unwrap();
     println!("Prediction: {}", scaling.min_max_normalization_reverse( prediction.get(0).unwrap().clone() ));
 }
 
@@ -207,6 +207,6 @@ pub fn simple_dnn3() {
     featurehelper_x_test.add_feature(_tmp_tensor);
 
     let tmp_tensor = scaling.min_max_normalization_other(featurehelper_x_test.get_data_tensor());
-    let prediction = model.predict(tmp_tensor);
+    let prediction = model.predict(&tmp_tensor).unwrap();
     println!("Prediction: {}", scaling.min_max_normalization_reverse( prediction.get(0).unwrap().clone() ));
 }

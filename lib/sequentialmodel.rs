@@ -24,6 +24,15 @@ impl Predictable for SequentialModel {
 impl ModelSerialization for SequentialModel {
 }
 
+impl DoPrediction for SequentialModel {
+    fn predict(&self, x: &Tensor) -> Option<Vec<Tensor>> {
+        if let Some(value) = self.predicting(&self.layers, x) {
+            return Some(value);
+        }
+        return Some(Vec::new());
+    }
+}
+
 
 impl SequentialModel {
     pub fn new(varmap: VarMap, layers: Vec<Box<dyn Trainable>>) -> Self {
@@ -60,23 +69,6 @@ impl SequentialModel {
         self.varmap = self.fitting(&self.layers, &self.loss, &self.optimizer, &self.varmap, epochs, _verbose, &x, &_y);
     }
 
-    pub fn predict(&self, x: Tensor) -> Vec<Tensor> {    
-        if let Some(value) = self.predicting(&self.layers, &x) {
-            return value;
-        }
-        return Vec::new();
-    }
-
-    /*
-    pub fn save_weights(&self, path: &str) {
-        self.save_weights_generic(&self.varmap, path);
-    }
-
-    pub fn load_weights(&mut self, path: &str, device: &Device) {
-        //self.varmap = self.load_weights_generic(path, device);
-        self.load_weights_generic(path, &self.varmap, device);
-    }
-    */
 
     pub fn save_model(&self, path: &str) {
         let mut file = File::create(path).unwrap();
