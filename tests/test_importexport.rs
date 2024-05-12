@@ -33,7 +33,9 @@ fn save_model_test() -> anyhow::Result<()> {
 
     let dev2 = candle_core::Device::cuda_if_available(0).unwrap();  
     let model2 = model.load_model("./test.model",&dev2);
-    model2.load_weights(SaveWeightsType::PlainJSON ,"./test.weights",&HashMap::new(), &varmap, &dev);
+    let mut hmap= HashMap::new();
+    hmap.insert("path".into(), Value::String("./test.weights".into()));
+    model2.load_weights(SaveWeightsType::PlainJSON ,&hmap, &varmap, &dev);
 
     anyhow::Ok(())
 }
