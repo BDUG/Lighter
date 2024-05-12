@@ -39,7 +39,7 @@ To use it as library just call 'cargo add candlelighter'
 | Parallel model |  [Merging](./docs/modelmerging.MD)      |  &#x1F3C3;    | [PNN](./lib/examples/simple_pnn.rs) 1st throw             | 
 | - |  [Model fine tuning](./docs/finetuning.MD)      |  &#x1F3C3;    | [DNN2](./lib/examples/simple_dnn.rs) & [DNN3](./lib/examples/simple_dnn.rs)            | 
 | Transformer models |  [see](./docs/transformers.MD)     |  &#x1F3C3;    |          | 
-| - BERT |  Text similarity    |  &#9989;  |   [LLM](./lib/examples/simple_llm.rs)       | 
+| * BERT |  Text similarity    |  &#9989;  |   [LLM](./lib/examples/simple_llm.rs)       | 
 | Reinforcement models |  [see](./docs/reinforcement.MD)     |  &#x1F3C3;    |          | 
 
 
