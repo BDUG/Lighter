@@ -128,9 +128,9 @@ pub trait ModelSerialization {
         file.write(&j.as_bytes()).unwrap();
     }
 
-    fn load_weights(&self, weighttype: SaveWeightsType, parameter: &HashMap<String, Value>, varmap: &VarMap, device: &Device) {
-        
-        varmap.data().lock().unwrap().clear();
+    fn default_load_weights(&self, weighttype: SaveWeightsType, parameter: &HashMap<String, Value>, varmap: &VarMap, device: &Device) {
+        // FIX ME
+        //varmap.data().lock().unwrap().clear();
 
         if weighttype.eq(&SaveWeightsType::SafeTensor){
             let mut paths = Vec::new();
@@ -144,8 +144,7 @@ pub trait ModelSerialization {
                 for (name, _) in tensors.tensors() {
                     let tensor = tensors.load(&name, &device).unwrap();
                     
-                    ws.insert(name.clone(), Var::from_tensor(&tensor).unwrap());
-                    
+                    ws.insert(name.clone(), Var::from_tensor(&tensor).unwrap());                   
                 }
             }
         }
@@ -165,7 +164,13 @@ pub trait ModelSerialization {
                 for (name, _) in tensors.tensors() {
                     let tensor = tensors.load(&name, &device).unwrap();
                     
-                    ws.insert(name, Var::from_tensor(&tensor).unwrap());
+                    //let name2= name.clone();
+                    //println!("Name: {}",name);
+                    //println!("Present {}",ws.get(&name).unwrap());t
+                    //println!("New {}",tensor);
+                    
+                    ws.insert(name, Var::from_tensor(&tensor).unwrap());        
+                    //println!("Present 2 {}",ws.get(&name2).unwrap());
                 }
             }
             else {
@@ -209,6 +214,12 @@ pub trait ModelSerialization {
             panic!("Unknown type");
         }
     }
+
+
+    fn load_weights(&self, weighttype: SaveWeightsType, parameter: &HashMap<String, Value>, varmap: &VarMap, device: &Device) {
+        self.default_load_weights(weighttype, parameter, varmap, device);
+    }
+
 
     fn load_weights_generic(&self, path: &str, varmap: &VarMap, device: &Device) { // -> VarMap    
         //let varmap: VarMap = VarMap::new();

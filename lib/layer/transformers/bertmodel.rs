@@ -48,7 +48,6 @@ impl DoPrediction for LighterBertModel {
         let token_type_ids = _new_x.zeros_like().unwrap();
         let _rst = self.model.forward(&_new_x, &token_type_ids).unwrap();
         return Some(vec![_rst]);
-        //todo!()
     }
 }
 
@@ -166,7 +165,6 @@ impl LighterBertModelTrait for LighterBertModel {
 
         configstring.push_str("}");
 
-        println!("{}", configstring);
         let config: Config = serde_json::from_str(&configstring).unwrap();
 
         let _bertmodel = BertModel::load(vs, &config).unwrap();

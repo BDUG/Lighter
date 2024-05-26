@@ -18,6 +18,7 @@ pub struct Features {
 }
 
 pub trait FeaturesTrait {
+    fn clean(&mut self);
     fn new(dev:Device) -> Self;
     fn add_temporal_feature(&mut self, input: Vec<Tensor>);
     fn add_feature(&mut self, input: Tensor);
@@ -35,6 +36,10 @@ impl FeaturesTrait for Features {
             data: _container, // Put it on the heap
             device: dev
         }
+    }
+
+    fn clean(&mut self) {
+        self.data.clear();
     }
     
     fn add_temporal_feature(&mut self, input: Vec<Tensor>) {

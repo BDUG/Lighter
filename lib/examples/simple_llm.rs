@@ -1,13 +1,14 @@
 
-use std::collections::HashMap;
+use std::{collections::HashMap};
 
 #[allow(unused)]
 use crate::prelude::*;
 use crate::{preprocessing::features::{Features, FeaturesTrait}, saveweightstype::SaveWeightsType};
-use selfattention::flatten::transformers::transformermodels::TransformerTrait;
+use candle_transformers::generation::{LogitsProcessor, Sampling};
+use selfattention::flatten::transformers::{tokeoutputstream::TokenOutputStream, transformermodels::TransformerTrait};
 use tokenizers::PaddingParams;
 
-use self::selfattention::flatten::transformers::{berthiddenacttype::BertHiddenActType, bertmodel::{LighterBertModel, LighterBertModelTrait}, bertpositionembdtypes::BertPositionEmbeddingType};
+use self::selfattention::flatten::transformers::{berthiddenacttype::BertHiddenActType, bertmodel::{LighterBertModel, LighterBertModelTrait}, bertpositionembdtypes::BertPositionEmbeddingType, llamamodel::{LighterLLamaModel, LighterLLamaModelTrait}};
 
 
 pub fn to_tensor(input: &Vec<Vec<f32>>, device: &Device) -> Tensor{
@@ -118,5 +119,77 @@ pub fn simple_llm() {
         println!("score: {score:.2} '{}' '{}'", sentences[i], sentences[j])
     }
 
+}
+
+
+// https://huggingface.co/tasks
+// one task is https://huggingface.co/tasks/text-generation
+pub fn simple_llm2() {
+
+    let varmap = VarMap::new();
+    let dev = candle_core::Device::cuda_if_available(0).unwrap();
+    
+    // TinyLlama-1.1B-Chat-v1.0 
+    let llamamodel = LighterLLamaModel::new(
+        0.85,
+        20,
+        3.2,
+        0.7,
+        50,
+        32000, 
+        768, 
+        3072, 
+        12, 
+        12, 
+        12, 
+        1e-06, 
+        1.0, 
+        &dev, 
+        "llama1".to_string());
+
+    let mut parameter = HashMap::new();
+    parameter.insert("hf_token".into(), Value::String("<YOUR TOKEN>".into()));
+    parameter.insert("hf_model".into(), Value::String("JackFram/llama-160m".into()));
+    // Or your pathes after first download
+    // parameter.insert("hf_model.safetensors".into(), Value::String("<YOUR PATH>".into()));
+    // parameter.insert("hf_tokenizer.json".into(), Value::String("<YOUR PATH>".into()));
+
+    let mut _tokenizer =  llamamodel.get_tokenizer(&parameter);    
+    llamamodel.load_weights(SaveWeightsType::HuggingfaceHub, &parameter, &varmap, &dev); 
+
+    let pp = PaddingParams {
+        strategy: tokenizers::PaddingStrategy::BatchLongest,
+        ..Default::default()
+    };
+    _tokenizer.with_padding(Some(pp));
+
+    let tokens = _tokenizer.encode("The world is ", true).unwrap();
+    let mut token_ids = tokens.get_ids().to_vec();
+    println!("Given query: {}",_tokenizer.decode(&token_ids, true).unwrap());
+
+    let mut _tokenizer_stream = TokenOutputStream::new(_tokenizer.clone());
+
+    let mut featurehelper_x_test = Features::new(dev.clone());
+    let _tmp: Vec<f32> = token_ids.iter().map(|&e| e as f32).collect();
+    let _tmp2= Tensor::new(_tmp, &dev).unwrap();
+    featurehelper_x_test.add_feature(_tmp2);
+
+
+    let input = &featurehelper_x_test.get_data_tensor();
+    let result = llamamodel.predict(input).unwrap();
+
+    let vv= result.get(0).unwrap().flatten_all().unwrap().to_vec1().unwrap();
+
+
+    let mut string = String::new();
+    for _token in vv {
+        if let t = _tokenizer_stream.next_token(_token).unwrap() {
+            if t.clone() != None {
+                string.push_str(&t.unwrap());
+            }
+        }
+    }
+    println!("Given answer: {}", string);
+   
 }
 

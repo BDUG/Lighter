@@ -8,7 +8,6 @@ use tokenizers::Tokenizer;
 
 pub trait TransformerTrait {
 
-
     fn get_tokenizer(&self, parameter: &HashMap<String, Value>) -> Tokenizer{
         let mut api = ApiBuilder::new().with_progress(false);
 
@@ -34,7 +33,7 @@ pub trait TransformerTrait {
             let model_id = Some(parameter.get("hf_model").unwrap().as_str().unwrap()).unwrap();
 
             let repo = api.build().unwrap().model(model_id.to_owned());
-            let tokenizer_filename = repo.download("tokenizer.json").unwrap();//config.json, tokenizer.json,model.safetensors
+            let tokenizer_filename = repo.download("tokenizer.json").unwrap();
             let tokenizer = Tokenizer::from_file(tokenizer_filename).unwrap();
             return tokenizer;
         }

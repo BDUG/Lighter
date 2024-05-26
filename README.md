@@ -40,6 +40,7 @@ To use it as library just call 'cargo add candlelighter'
 | - |  [Model fine tuning](./docs/finetuning.MD)      |  &#x1F3C3;    | [DNN2](./lib/examples/simple_dnn.rs) & [DNN3](./lib/examples/simple_dnn.rs)            | 
 | Transformer models |  [see](./docs/transformers.MD)     |  &#x1F3C3;    |          | 
 | * BERT |  Text similarity    |  &#9989;  |   [LLM](./lib/examples/simple_llm.rs)       | 
+| * LLAMA |  Completion (Chat)    |  &#9989;  |   [LLM2](./lib/examples/simple_llm.rs)       | 
 | Reinforcement models |  [see](./docs/reinforcement.MD)     |  &#x1F3C3;    |          | 
 
 

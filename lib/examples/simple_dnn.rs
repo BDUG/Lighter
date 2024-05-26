@@ -52,9 +52,6 @@ pub fn simple_dnn() {
     let tmp_x = featurehelper_x.get_data_tensor();
     let tmp_y = featurehelper_y.get_data_tensor();
 
-    //println!("{}",tmp_x);
-    //println!("{}",tmp_y);
-
     let mut layers: Vec<Box<dyn Trainable>> = vec![];
     let mut name1 = String::new();
     name1.push_str("fc1");
@@ -108,10 +105,6 @@ pub fn simple_dnn2() {
     }
     let tmp_x = featurehelper_x.get_data_tensor();
     let tmp_y = featurehelper_y.get_data_tensor();
-
-    //println!("{}",tmp_x);
-    //println!("{}",tmp_y);
-    //println!("{}",tmp_x.get(0).unwrap());
 
     let mut _rank = Tensor::rand(0.0, 1.0, tmp_x.get(0).unwrap().shape(), &dev).unwrap().to_dtype(DType::F32).unwrap();
     let mut _alpha = 0.25;
@@ -169,10 +162,6 @@ pub fn simple_dnn3() {
     }
     let tmp_x = featurehelper_x.get_data_tensor();
     let tmp_y = featurehelper_y.get_data_tensor();
-
-    //println!("{}",tmp_x);
-    //println!("{}",tmp_y);
-    //println!("{}",tmp_x.get(0).unwrap());
 
     let mut _rank = Tensor::rand(0.0, 1.0, tmp_x.get(0).unwrap().shape(), &dev).unwrap().to_dtype(DType::F32).unwrap();
     let mut _alpha = 0.25;

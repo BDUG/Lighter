@@ -65,11 +65,8 @@ pub fn simple_s2s() {
     println!("Vector: {:?}", query_attention_weight);
 
     let keys = w_key.matmul(&embedded_sentence.reshape( (6,16) ).unwrap().t().unwrap()).unwrap();
-    let values = w_value.matmul(&embedded_sentence.reshape( (6,16) ).unwrap().t().unwrap()).unwrap();
+    let _values = w_value.matmul(&embedded_sentence.reshape( (6,16) ).unwrap().t().unwrap()).unwrap();
 
-    println!("{}",keys);
-    println!("{}",values);
-    
     // omega = w
     let mut omegas = Vec::new();
     for  (_pos, e) in query_attention_weight.iter().enumerate(){

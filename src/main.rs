@@ -22,6 +22,7 @@ fn main() {
                 "Simple ENN",
                 "Simple PNN",
                 "Simple LLM",
+                "Simple LLM2",
                 ]
             ),
         button("exit")
@@ -64,6 +65,9 @@ fn main() {
         }
         else if mm.selection_value("examples").eq("Simple LLM") {
             candlelighter::examples::simple_llm::simple_llm();
+        }
+        else if mm.selection_value("examples").eq("Simple LLM2") {
+            candlelighter::examples::simple_llm::simple_llm2();
         }
     }
 }
