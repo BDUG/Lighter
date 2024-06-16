@@ -35,9 +35,10 @@ To use it as library just call 'cargo add candlelighter'
 | - | [Attention](./docs/attention.MD)    |  &#x1F3C3;    | [TNN](./lib/examples/simple_tnn.rs) 1st throw  |
 | - | [Mixture of Experts](./docs/moe.MD)   |  &#x1F3C3;    | [ENN](./lib/examples/simple_enn.rs) 1st throw             |
 | - |  [Feature masking and -quantization](./docs/masking.MD)   |  &#x1F3C3;    | -             |
+| - |  [KAN-Dense](https://www.holeoftherabbit.com/2024/06/16/may-kan-will-be-the-next-ai-disruption-step/)   |  &#x1F3C3;    | -             |
+| [Model fine tuning  (PEFT)](https://www.holeoftherabbit.com/2024/06/14/fine-tuning-as-playfield/)  |  -  |  &#x1F3C3;    | *In development:* [DNN2](./lib/examples/simple_dnn.rs) & [DNN3](./lib/examples/simple_dnn.rs)            | 
 | Parallel model (in sense of split) |  -   |  &#x1F3C3;    | [PNN](./lib/examples/simple_pnn.rs) 1st throw           | 
 | Parallel model |  [Merging](./docs/modelmerging.MD)      |  &#x1F3C3;    | [PNN](./lib/examples/simple_pnn.rs) 1st throw             | 
-| - |  [Model fine tuning](./docs/finetuning.MD)      |  &#x1F3C3;    | [DNN2](./lib/examples/simple_dnn.rs) & [DNN3](./lib/examples/simple_dnn.rs)            | 
 | Transformer models |  [see](./docs/transformers.MD)     |  &#x1F3C3;    |          | 
 | * BERT |  Text similarity    |  &#9989;  |   [LLM](./lib/examples/simple_llm.rs)       | 
 | * LLAMA |  Completion (Chat)    |  &#9989;  |   [LLM2](./lib/examples/simple_llm.rs)       | 

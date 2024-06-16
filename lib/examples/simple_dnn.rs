@@ -188,7 +188,7 @@ pub fn simple_dnn3() {
         scaling.min_max_normalization_other(tmp_y), 
         100, 
         false);
-    
+
     let mut featurehelper_x_test = Features::new(dev.clone());
     //let x_test: [[f32; 2]; 1] = [ [4., 5.] ];
     let x_test: [f32; 2] = [4., 5.];
