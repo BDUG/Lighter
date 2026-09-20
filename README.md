@@ -6,9 +6,72 @@ The behaviour is inspired by Python KERAS (https://keras.io) and the initial ste
 
 So let's call the project **Candle Lighter** &#128367;, because it helps to turn on the candle light and is even easier to implement.
 
-Examples can be found below the **lib/examples/** directory.
+Examples can be found in the **lib/examples/** and **examples/** directories.
 
 To use it as library just call 'cargo add candlelighter'
+
+## Running the examples
+
+Run the commands below from the repository root after installing a stable Rust
+toolchain. The first build downloads and compiles the dependencies, so it can
+take a few minutes.
+
+### Candle training examples
+
+The examples in `lib/examples/` are exposed through the project's interactive
+example selector. Start it with:
+
+```bash
+cargo run --bin candlelighter
+```
+
+Use the arrow keys to choose an example, press Enter to run it, or select
+`exit` to close the selector. These examples use the default features and may
+automatically use a CUDA device when one is available; otherwise they run on
+the CPU. Run the command from the repository root so data-backed examples such
+as `Simple CNN` can find the files under `data/`.
+
+### Standalone native examples
+
+The files in `examples/` are regular Cargo examples. They use the Candle-free
+native runtime and can be run individually with this command pattern:
+
+```bash
+cargo run --example <example-name> --no-default-features --features native -- [arguments]
+```
+
+Examples that do not require a downloaded model can be tried immediately:
+
+```bash
+cargo run --example native_advanced --no-default-features --features native
+cargo run --example native_finetune --no-default-features --features native
+cargo run --example native_prompt --no-default-features --features native
+```
+
+Model-backed examples accept arguments after `--`:
+
+```bash
+# Inspect the machine and select a compatible model from Hugging Face.
+cargo run --example select_huggingface_model \
+  --no-default-features --features native -- "Llama"
+
+# Generate with a Hugging Face snapshot already downloaded to MODEL_DIR.
+cargo run --example native_generate \
+  --no-default-features --features native -- MODEL_DIR "Once upon a time"
+
+# Select, download, and run a model. Both arguments are optional.
+cargo run --example auto_native_generate \
+  --no-default-features --features native -- "TinyLlama" "Hello"
+
+# Fine-tune the LM head of a local snapshot with LoRA.
+cargo run --example native_finetune \
+  --no-default-features --features native -- MODEL_DIR
+```
+
+The selection and automatic-generation examples require network access.
+Set `HF_TOKEN` before running them when access to a gated or private Hugging
+Face model is required. Local model directories must contain the model config,
+tokenizer, and safetensors files expected in a Hugging Face snapshot.
 
 ## Native inference runtime
 
