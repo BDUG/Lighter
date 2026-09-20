@@ -12,6 +12,7 @@ use std::collections::{HashMap, VecDeque};
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::fs;
+use std::io;
 use std::path::{Path, PathBuf};
 
 use crate::native_prompt::{ConstraintSpec, OutputConstraint};
@@ -142,6 +143,23 @@ impl HuggingFaceArtifacts {
         revision: Option<&str>,
         token: Option<String>,
     ) -> NativeResult<Self> {
+        match Self::from_hf_hub(model_id, revision, token.clone()) {
+            Err(error) if error.0.contains("RelativeUrlWithoutBase") => {
+                // hf-hub 0.3.x reads the Hub's Location header and issues a new
+                // request with it. The Hub may return a relative resolve-cache
+                // URL, which that client cannot parse. ureq follows relative
+                // redirects correctly, so use it as a compatibility fallback.
+                Self::from_hub_direct(model_id, revision, token)
+            }
+            result => result,
+        }
+    }
+
+    fn from_hf_hub(
+        model_id: &str,
+        revision: Option<&str>,
+        token: Option<String>,
+    ) -> NativeResult<Self> {
         use hf_hub::{api::sync::ApiBuilder, Repo, RepoType};
         let api = ApiBuilder::new()
             .with_progress(false)
@@ -182,6 +200,119 @@ impl HuggingFaceArtifacts {
         debug_assert_eq!(result.tokenizer, tokenizer);
         Ok(result)
     }
+
+    fn from_hub_direct(
+        model_id: &str,
+        revision: Option<&str>,
+        token: Option<String>,
+    ) -> NativeResult<Self> {
+        validate_hub_path(model_id, "model ID")?;
+        let revision = revision.unwrap_or("main");
+        validate_hub_path(revision, "revision")?;
+
+        let cache = hf_hub::Cache::default();
+        let token = token.or_else(|| cache.token());
+        let root = cache
+            .path()
+            .join("lighter")
+            .join(model_id.replace('/', "--"))
+            .join(revision.replace('/', "--"));
+        fs::create_dir_all(&root)
+            .map_err(|e| NativeError(format!("cannot create Hub cache {}: {e}", root.display())))?;
+
+        let download = |filename: &str| {
+            download_hub_file(model_id, revision, filename, token.as_deref(), &root)
+        };
+        download("config.json")?;
+        download("tokenizer.json")?;
+        match download("model.safetensors.index.json") {
+            Ok(index) => {
+                let value: serde_json::Value = serde_json::from_str(&read_text(&index)?)
+                    .map_err(|e| NativeError(format!("invalid safetensors index: {e}")))?;
+                let map = value
+                    .get("weight_map")
+                    .and_then(|v| v.as_object())
+                    .ok_or_else(|| NativeError("safetensors index has no weight_map".into()))?;
+                let mut names: Vec<_> = map.values().filter_map(|v| v.as_str()).collect();
+                names.sort_unstable();
+                names.dedup();
+                for name in names {
+                    validate_hub_filename(name)?;
+                    download(name)?;
+                }
+            }
+            Err(error) if error.0.contains("HTTP 404") => {
+                download("model.safetensors")?;
+            }
+            Err(error) => return Err(error),
+        }
+        Self::from_dir(root)
+    }
+}
+
+fn download_hub_file(
+    model_id: &str,
+    revision: &str,
+    filename: &str,
+    token: Option<&str>,
+    root: &Path,
+) -> NativeResult<PathBuf> {
+    validate_hub_filename(filename)?;
+    let destination = root.join(filename);
+    if destination.is_file() {
+        return Ok(destination);
+    }
+    if let Some(parent) = destination.parent() {
+        fs::create_dir_all(parent).map_err(|e| {
+            NativeError(format!("cannot create Hub cache {}: {e}", parent.display()))
+        })?;
+    }
+    let url = format!("https://huggingface.co/{model_id}/resolve/{revision}/{filename}");
+    let mut request = ureq::get(&url);
+    if let Some(token) = token {
+        request = request.set("Authorization", &format!("Bearer {token}"));
+    }
+    let response = request.call().map_err(|error| match error {
+        ureq::Error::Status(status, _) => NativeError(format!(
+            "Hugging Face download failed for {filename}: HTTP {status}"
+        )),
+        error => NativeError(format!(
+            "Hugging Face download failed for {filename}: {error}"
+        )),
+    })?;
+    let temporary = destination.with_extension(format!("download-{}", std::process::id()));
+    let mut file = fs::File::create(&temporary)
+        .map_err(|e| NativeError(format!("cannot create {}: {e}", temporary.display())))?;
+    if let Err(error) = io::copy(&mut response.into_reader(), &mut file) {
+        let _ = fs::remove_file(&temporary);
+        return Err(NativeError(format!(
+            "cannot download {filename} to {}: {error}",
+            destination.display()
+        )));
+    }
+    fs::rename(&temporary, &destination).map_err(|e| {
+        let _ = fs::remove_file(&temporary);
+        NativeError(format!("cannot save {}: {e}", destination.display()))
+    })?;
+    Ok(destination)
+}
+
+fn validate_hub_path(value: &str, description: &str) -> NativeResult<()> {
+    if value.is_empty()
+        || value.starts_with('/')
+        || value
+            .split('/')
+            .any(|part| part.is_empty() || part == "." || part == "..")
+    {
+        return Err(NativeError(format!(
+            "invalid Hugging Face {description}: {value}"
+        )));
+    }
+    Ok(())
+}
+
+fn validate_hub_filename(filename: &str) -> NativeResult<()> {
+    validate_hub_path(filename, "filename")
 }
 
 fn read_text(path: &Path) -> NativeResult<String> {
