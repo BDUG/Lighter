@@ -168,7 +168,7 @@ impl ModelSelector {
         let raw: Vec<HubModel> = response
             .into_json()
             .map_err(|e| NativeError(format!("invalid Hugging Face models response: {e}")))?;
-        Ok(raw.into_iter().map(HuggingFaceModel::from).collect())
+        raw.into_iter().map(HubModel::into_model).collect()
     }
 
     /// Discovers models and fills missing architecture metadata by fetching
@@ -273,8 +273,13 @@ impl ModelSelector {
 
 #[derive(Deserialize)]
 struct HubModel {
-    #[serde(alias = "modelId")]
-    id: String,
+    // The Hub currently returns both `id` and `modelId` for some models. An
+    // alias cannot be used here because serde treats the second key as a
+    // duplicate field. Keep them separate and prefer the canonical `id`.
+    #[serde(default)]
+    id: Option<String>,
+    #[serde(default, rename = "modelId")]
+    model_id: Option<String>,
     #[serde(default)]
     downloads: u64,
     #[serde(default)]
@@ -299,34 +304,37 @@ struct HubSafetensors {
     parameters: HashMap<String, u64>,
 }
 
-impl From<HubModel> for HuggingFaceModel {
-    fn from(raw: HubModel) -> Self {
-        let parameter_count = raw.safetensors.and_then(|metadata| {
+impl HubModel {
+    fn into_model(self) -> NativeResult<HuggingFaceModel> {
+        let id = self.id.or(self.model_id).ok_or_else(|| {
+            NativeError("invalid Hugging Face model entry: missing `id` and `modelId`".into())
+        })?;
+        let parameter_count = self.safetensors.and_then(|metadata| {
             metadata.total.or_else(|| {
                 let total: u64 = metadata.parameters.values().sum();
                 (total > 0).then_some(total)
             })
         });
-        let model_type = raw
+        let model_type = self
             .config
             .get("model_type")
             .and_then(Value::as_str)
             .map(str::to_owned);
-        let gated = match raw.gated {
+        let gated = match self.gated {
             Value::Bool(value) => value,
             Value::String(value) => value != "false",
             _ => false,
         };
-        Self {
-            id: raw.id,
-            downloads: raw.downloads,
-            likes: raw.likes,
+        Ok(HuggingFaceModel {
+            id,
+            downloads: self.downloads,
+            likes: self.likes,
             model_type,
             parameter_count,
             gated,
-            private: raw.private,
-            tags: raw.tags,
-        }
+            private: self.private,
+            tags: self.tags,
+        })
     }
 }
 
@@ -493,9 +501,33 @@ mod tests {
             "safetensors":{"parameters":{"BF16":123}}
         }))
         .unwrap();
-        let model = HuggingFaceModel::from(raw);
+        let model = raw.into_model().unwrap();
         assert_eq!(model.parameter_count, Some(123));
         assert!(model.gated);
         assert!(model.is_native_llama_compatible());
+    }
+
+    #[test]
+    fn parses_hub_metadata_with_both_model_identifiers() {
+        let raw: HubModel = serde_json::from_value(serde_json::json!({
+            "id": "org/canonical", "modelId": "org/legacy"
+        }))
+        .unwrap();
+
+        let model = raw.into_model().unwrap();
+
+        assert_eq!(model.id, "org/canonical");
+    }
+
+    #[test]
+    fn falls_back_to_legacy_hub_model_identifier() {
+        let raw: HubModel = serde_json::from_value(serde_json::json!({
+            "modelId": "org/legacy"
+        }))
+        .unwrap();
+
+        let model = raw.into_model().unwrap();
+
+        assert_eq!(model.id, "org/legacy");
     }
 }
