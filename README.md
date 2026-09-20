@@ -51,7 +51,7 @@ cargo run --example native_prompt --no-default-features --features native
 Model-backed examples accept arguments after `--`:
 
 ```bash
-# Inspect the machine and select a compatible model from Hugging Face.
+# Inspect the machine, select a compatible model, and optionally download it.
 cargo run --example select_huggingface_model \
   --no-default-features --features native -- "Llama"
 
@@ -67,6 +67,10 @@ cargo run --example auto_native_generate \
 cargo run --example native_finetune \
   --no-default-features --features native -- MODEL_DIR
 ```
+
+After selecting a model, the selection example asks whether to download it. If
+you answer `y`, it downloads the snapshot into the Hugging Face cache and prints
+a `native_generate` command containing the cache path so you can run it later.
 
 The selection and automatic-generation examples require network access.
 Set `HF_TOKEN` before running them when access to a gated or private Hugging
@@ -121,7 +125,7 @@ parameter metadata, and select the largest compatible model within a configured
 memory budget.
 
 ```bash
-# Inspect the host and select among current text-generation models.
+# Select a current text-generation model and choose whether to download it.
 cargo run --example select_huggingface_model \
   --no-default-features --features native -- "Llama"
 
