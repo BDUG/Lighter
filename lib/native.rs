@@ -513,23 +513,43 @@ fn load_tokenizer(path: &Path) -> NativeResult<tokenizers::Tokenizer> {
     match tokenizers::Tokenizer::from_bytes(&bytes) {
         Ok(tokenizer) => Ok(tokenizer),
         Err(original_error) => {
-            // tokenizers 0.20 added this BPE serialization field. Transformers
-            // now writes it even when it is false, while tokenizers 0.19 uses
-            // deny_unknown_fields for BPE and rejects the entire ModelWrapper.
-            // Removing the false/default value is behavior-preserving and lets
-            // models saved by newer Transformers load with our 0.19 dependency.
+            // Newer tokenizers versions serialize BPE merges as pairs, while
+            // tokenizers 0.19 expects the legacy "left right" representation.
+            // Convert only well-formed pairs so malformed or unrelated
+            // tokenizer files still report the original loading error.
             let mut json: serde_json::Value = serde_json::from_slice(&bytes)
                 .map_err(|_| NativeError(format!("cannot load tokenizer: {original_error}")))?;
-            let removed_default = json
+            let converted_merges = json
                 .get_mut("model")
                 .and_then(serde_json::Value::as_object_mut)
-                .and_then(|model| {
-                    (model.get("ignore_merges") == Some(&serde_json::Value::Bool(false)))
-                        .then(|| model.remove("ignore_merges"))
-                        .flatten()
+                .filter(|model| model.get("type").and_then(serde_json::Value::as_str) == Some("BPE"))
+                .and_then(|model| model.get_mut("merges"))
+                .and_then(serde_json::Value::as_array_mut)
+                .map(|merges| {
+                    let converted = merges
+                        .iter()
+                        .map(|merge| {
+                            let pair = merge.as_array()?;
+                            match pair.as_slice() {
+                                [left, right] => Some(serde_json::Value::String(format!(
+                                    "{} {}",
+                                    left.as_str()?,
+                                    right.as_str()?
+                                ))),
+                                _ => None,
+                            }
+                        })
+                        .collect::<Option<Vec<_>>>();
+                    if let Some(converted) = converted {
+                        let changed = converted != *merges;
+                        *merges = converted;
+                        changed
+                    } else {
+                        false
+                    }
                 })
-                .is_some();
-            if !removed_default {
+                .unwrap_or(false);
+            if !converted_merges {
                 return Err(NativeError(format!(
                     "cannot load tokenizer: {original_error}"
                 )));
@@ -538,7 +558,7 @@ fn load_tokenizer(path: &Path) -> NativeResult<tokenizers::Tokenizer> {
                 .map_err(|e| NativeError(format!("cannot rewrite tokenizer: {e}")))?;
             tokenizers::Tokenizer::from_bytes(&compatible).map_err(|e| {
                 NativeError(format!(
-                    "cannot load tokenizer after removing the default ignore_merges field: {e}"
+                    "cannot load tokenizer after converting BPE merges: {e}"
                 ))
             })
         }
@@ -974,7 +994,7 @@ mod tests {
     }
 
     #[test]
-    fn loads_new_bpe_tokenizer_with_default_ignore_merges() {
+    fn loads_bpe_tokenizer_with_pair_merges() {
         let root = std::env::temp_dir().join(format!(
             "lighter-tokenizer-{}-{:?}",
             std::process::id(),
@@ -984,12 +1004,13 @@ mod tests {
         let path = root.join("tokenizer.json");
         fs::write(
             &path,
-            r#"{"version":"1.0","truncation":null,"padding":null,"added_tokens":[],"normalizer":null,"pre_tokenizer":null,"post_processor":null,"decoder":null,"model":{"type":"BPE","dropout":null,"unk_token":null,"continuing_subword_prefix":"","end_of_word_suffix":"","fuse_unk":false,"byte_fallback":false,"ignore_merges":false,"vocab":{"a":0},"merges":[]}}"#,
+            r#"{"version":"1.0","truncation":null,"padding":null,"added_tokens":[],"normalizer":null,"pre_tokenizer":null,"post_processor":null,"decoder":null,"model":{"type":"BPE","dropout":null,"unk_token":null,"continuing_subword_prefix":"","end_of_word_suffix":"","fuse_unk":false,"byte_fallback":false,"ignore_merges":false,"vocab":{"a":0,"b":1,"ab":2},"merges":[["a","b"]]}}"#,
         )
         .unwrap();
 
+        assert!(tokenizers::Tokenizer::from_file(&path).is_err());
         let tokenizer = load_tokenizer(&path).unwrap();
-        assert_eq!(tokenizer.get_vocab_size(false), 1);
+        assert_eq!(tokenizer.get_vocab_size(false), 3);
         fs::remove_dir_all(root).unwrap();
     }
 
