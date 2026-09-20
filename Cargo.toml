@@ -9,7 +9,6 @@ documentation = "https://github.com/BDUG/Lighter"
 homepage = "https://github.com/BDUG/Lighter"
 repository= "https://github.com/BDUG/Lighter"
 license = "MPL-2.0"
-license-file = "LICENSE"
 keywords = ["machine","learning","ML","candle","KERAS"]
 categories = ["science", "hardware-support","development-tools","computer-vision","algorithms"]
 exclude = [".github/", ".*", ".vscode/","target/*","Cargo.lock"]

@@ -499,12 +499,49 @@ pub struct HuggingFaceBackend<M> {
 
 impl<M> HuggingFaceBackend<M> {
     pub fn new(model: M, artifacts: &HuggingFaceArtifacts) -> NativeResult<Self> {
-        let tokenizer = tokenizers::Tokenizer::from_file(&artifacts.tokenizer)
-            .map_err(|e| NativeError(format!("cannot load tokenizer: {e}")))?;
+        let tokenizer = load_tokenizer(&artifacts.tokenizer)?;
         Ok(Self { tokenizer, model })
     }
     pub fn into_model(self) -> M {
         self.model
+    }
+}
+
+fn load_tokenizer(path: &Path) -> NativeResult<tokenizers::Tokenizer> {
+    let bytes = fs::read(path)
+        .map_err(|e| NativeError(format!("cannot read tokenizer {}: {e}", path.display())))?;
+    match tokenizers::Tokenizer::from_bytes(&bytes) {
+        Ok(tokenizer) => Ok(tokenizer),
+        Err(original_error) => {
+            // tokenizers 0.20 added this BPE serialization field. Transformers
+            // now writes it even when it is false, while tokenizers 0.19 uses
+            // deny_unknown_fields for BPE and rejects the entire ModelWrapper.
+            // Removing the false/default value is behavior-preserving and lets
+            // models saved by newer Transformers load with our 0.19 dependency.
+            let mut json: serde_json::Value = serde_json::from_slice(&bytes)
+                .map_err(|_| NativeError(format!("cannot load tokenizer: {original_error}")))?;
+            let removed_default = json
+                .get_mut("model")
+                .and_then(serde_json::Value::as_object_mut)
+                .and_then(|model| {
+                    (model.get("ignore_merges") == Some(&serde_json::Value::Bool(false)))
+                        .then(|| model.remove("ignore_merges"))
+                        .flatten()
+                })
+                .is_some();
+            if !removed_default {
+                return Err(NativeError(format!(
+                    "cannot load tokenizer: {original_error}"
+                )));
+            }
+            let compatible = serde_json::to_vec(&json)
+                .map_err(|e| NativeError(format!("cannot rewrite tokenizer: {e}")))?;
+            tokenizers::Tokenizer::from_bytes(&compatible).map_err(|e| {
+                NativeError(format!(
+                    "cannot load tokenizer after removing the default ignore_merges field: {e}"
+                ))
+            })
+        }
     }
 }
 
@@ -934,6 +971,26 @@ mod tests {
         .unwrap();
         assert_eq!(c.eos_token_ids(), vec![1, 2]);
         assert!(c.extensions.contains_key("new_rope_feature"));
+    }
+
+    #[test]
+    fn loads_new_bpe_tokenizer_with_default_ignore_merges() {
+        let root = std::env::temp_dir().join(format!(
+            "lighter-tokenizer-{}-{:?}",
+            std::process::id(),
+            std::thread::current().id()
+        ));
+        fs::create_dir_all(&root).unwrap();
+        let path = root.join("tokenizer.json");
+        fs::write(
+            &path,
+            r#"{"version":"1.0","truncation":null,"padding":null,"added_tokens":[],"normalizer":null,"pre_tokenizer":null,"post_processor":null,"decoder":null,"model":{"type":"BPE","dropout":null,"unk_token":null,"continuing_subword_prefix":"","end_of_word_suffix":"","fuse_unk":false,"byte_fallback":false,"ignore_merges":false,"vocab":{"a":0},"merges":[]}}"#,
+        )
+        .unwrap();
+
+        let tokenizer = load_tokenizer(&path).unwrap();
+        assert_eq!(tokenizer.get_vocab_size(false), 1);
+        fs::remove_dir_all(root).unwrap();
     }
 
     #[test]
