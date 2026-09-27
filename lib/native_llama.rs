@@ -8,6 +8,7 @@ use crate::native::{BackendInput, HuggingFaceArtifacts, NativeError, NativeModel
 use crate::native_advanced::{PagedKvCache, QuantizationConfig, QuantizedMatrix};
 use crate::native_training::{FineTunableTransformer, LoraAdapter, LoraConfig};
 use half::{bf16, f16};
+use rayon::prelude::*;
 use safetensors::{Dtype, SafeTensors};
 use std::collections::HashMap;
 use std::fs;
@@ -15,8 +16,47 @@ use std::sync::Arc;
 
 #[derive(Clone)]
 enum MatrixData {
-    Dense(Arc<Vec<f32>>),
+    F32(Arc<Vec<f32>>),
+    F16(Arc<Vec<u16>>),
+    BF16(Arc<Vec<u16>>),
     Quantized(QuantizedMatrix),
+}
+
+enum TensorData {
+    F32(Vec<f32>),
+    F16(Vec<u16>),
+    BF16(Vec<u16>),
+    Quantized(QuantizedMatrix),
+}
+
+struct StoredTensor {
+    shape: Vec<usize>,
+    data: TensorData,
+}
+
+impl TensorData {
+    fn len(&self) -> usize {
+        match self {
+            Self::F32(data) => data.len(),
+            Self::F16(data) | Self::BF16(data) => data.len(),
+            Self::Quantized(data) => data.rows() * data.cols(),
+        }
+    }
+
+    fn into_f32(self) -> Vec<f32> {
+        match self {
+            Self::F32(data) => data,
+            Self::F16(data) => data
+                .into_iter()
+                .map(|v| f16::from_bits(v).to_f32())
+                .collect(),
+            Self::BF16(data) => data
+                .into_iter()
+                .map(|v| bf16::from_bits(v).to_f32())
+                .collect(),
+            Self::Quantized(data) => data.dequantize(),
+        }
+    }
 }
 
 #[derive(Clone)]
@@ -33,7 +73,15 @@ impl Matrix {
             return Err(NativeError(format!("token {row} exceeds vocabulary")));
         }
         match &self.data {
-            MatrixData::Dense(data) => Ok(data[row * self.cols..(row + 1) * self.cols].to_vec()),
+            MatrixData::F32(data) => Ok(data[row * self.cols..(row + 1) * self.cols].to_vec()),
+            MatrixData::F16(data) => Ok(data[row * self.cols..(row + 1) * self.cols]
+                .iter()
+                .map(|&v| f16::from_bits(v).to_f32())
+                .collect()),
+            MatrixData::BF16(data) => Ok(data[row * self.cols..(row + 1) * self.cols]
+                .iter()
+                .map(|&v| bf16::from_bits(v).to_f32())
+                .collect()),
             MatrixData::Quantized(data) => {
                 (0..self.cols).map(|column| data.get(row, column)).collect()
             }
@@ -48,9 +96,27 @@ impl Matrix {
             )));
         }
         let mut output = match &self.data {
-            MatrixData::Dense(data) => Ok(data
-                .chunks_exact(self.cols)
+            MatrixData::F32(data) => Ok(data
+                .par_chunks_exact(self.cols)
                 .map(|row| row.iter().zip(x).map(|(a, b)| a * b).sum())
+                .collect()),
+            MatrixData::F16(data) => Ok(data
+                .par_chunks_exact(self.cols)
+                .map(|row| {
+                    row.iter()
+                        .zip(x)
+                        .map(|(&a, b)| f16::from_bits(a).to_f32() * b)
+                        .sum()
+                })
+                .collect()),
+            MatrixData::BF16(data) => Ok(data
+                .par_chunks_exact(self.cols)
+                .map(|row| {
+                    row.iter()
+                        .zip(x)
+                        .map(|(&a, b)| bf16::from_bits(a).to_f32() * b)
+                        .sum()
+                })
                 .collect()),
             MatrixData::Quantized(data) => data.matvec(x),
         }?;
@@ -63,9 +129,17 @@ impl Matrix {
         Ok(output)
     }
     fn quantize(&mut self, config: QuantizationConfig) -> NativeResult<()> {
-        if let MatrixData::Dense(data) = &self.data {
+        if !matches!(self.data, MatrixData::Quantized(_)) {
+            let data: Vec<f32> = match &self.data {
+                MatrixData::F32(data) => data.as_ref().clone(),
+                MatrixData::F16(data) => data.iter().map(|&v| f16::from_bits(v).to_f32()).collect(),
+                MatrixData::BF16(data) => {
+                    data.iter().map(|&v| bf16::from_bits(v).to_f32()).collect()
+                }
+                MatrixData::Quantized(_) => unreachable!(),
+            };
             self.data = MatrixData::Quantized(QuantizedMatrix::quantize(
-                self.rows, self.cols, data, config,
+                self.rows, self.cols, &data, config,
             )?);
         }
         Ok(())
@@ -82,6 +156,8 @@ struct Layer {
     q_bias: Option<Vec<f32>>,
     k_bias: Option<Vec<f32>>,
     v_bias: Option<Vec<f32>>,
+    q_norm: Option<Vec<f32>>,
+    k_norm: Option<Vec<f32>>,
     gate: Matrix,
     up: Matrix,
     down: Matrix,
@@ -130,11 +206,28 @@ pub struct NativeLlama {
 
 impl NativeLlama {
     pub fn load(artifacts: &HuggingFaceArtifacts) -> NativeResult<Self> {
+        Self::load_with_quantization(artifacts, None)
+    }
+
+    /// Loads and quantizes each matrix as its checkpoint shard is decoded.
+    /// This avoids first retaining the complete half-precision 8B checkpoint
+    /// in memory, which is essential on hosts sized for the quantized model.
+    pub fn load_quantized(
+        artifacts: &HuggingFaceArtifacts,
+        config: QuantizationConfig,
+    ) -> NativeResult<Self> {
+        Self::load_with_quantization(artifacts, Some(config))
+    }
+
+    fn load_with_quantization(
+        artifacts: &HuggingFaceArtifacts,
+        quantization: Option<QuantizationConfig>,
+    ) -> NativeResult<Self> {
         let c = &artifacts.config;
-        if !matches!(c.model_type.as_str(), "llama" | "mistral" | "qwen2") {
+        if !is_supported_decoder_config(c) {
             return Err(NativeError(format!(
-                "native CPU decoder does not support model_type {:?}",
-                c.model_type
+                "native CPU decoder does not support model_type {:?} with architectures {:?}",
+                c.model_type, c.architectures
             )));
         }
         if c.hidden_size == 0
@@ -146,7 +239,7 @@ impl NativeLlama {
                 "config is missing transformer dimensions".into(),
             ));
         }
-        let mut tensors = load_tensors(&artifacts.weights)?;
+        let mut tensors = load_tensors(&artifacts.weights, quantization)?;
         let embedding = matrix(&mut tensors, "model.embed_tokens.weight")?;
         let heads = c.num_attention_heads;
         let kv_heads = c.num_key_value_heads.unwrap_or(heads);
@@ -183,6 +276,8 @@ impl NativeLlama {
                 q_bias: optional_vector(&mut tensors, &format!("{p}.self_attn.q_proj.bias")),
                 k_bias: optional_vector(&mut tensors, &format!("{p}.self_attn.k_proj.bias")),
                 v_bias: optional_vector(&mut tensors, &format!("{p}.self_attn.v_proj.bias")),
+                q_norm: optional_vector(&mut tensors, &format!("{p}.self_attn.q_norm.weight")),
+                k_norm: optional_vector(&mut tensors, &format!("{p}.self_attn.k_norm.weight")),
                 gate: matrix(&mut tensors, &format!("{p}.mlp.gate_proj.weight"))?,
                 up: matrix(&mut tensors, &format!("{p}.mlp.up_proj.weight"))?,
                 down: matrix(&mut tensors, &format!("{p}.mlp.down_proj.weight"))?,
@@ -309,6 +404,12 @@ impl NativeLlama {
                 let mut q = add_bias(layer.q.mv(&n)?, layer.q_bias.as_deref())?;
                 let mut k = add_bias(layer.k.mv(&n)?, layer.k_bias.as_deref())?;
                 let v = add_bias(layer.v.mv(&n)?, layer.v_bias.as_deref())?;
+                if let Some(weight) = layer.q_norm.as_deref() {
+                    q = rms_norm_heads(&q, weight, self.heads, self.head_dim, self.eps)?;
+                }
+                if let Some(weight) = layer.k_norm.as_deref() {
+                    k = rms_norm_heads(&k, weight, self.kv_heads, self.head_dim, self.eps)?;
+                }
                 apply_rope(
                     &mut q,
                     self.heads,
@@ -359,6 +460,26 @@ impl NativeLlama {
         }
         self.output.mv(&normalized)
     }
+}
+
+/// Some fine-tuned repositories register a checkpoint-specific `model_type`
+/// even though their tensors retain the standard Llama layout. Prefer the
+/// architecture declaration in that case so those checkpoints do not require
+/// rewriting `config.json` before loading.
+fn is_supported_decoder_config(config: &crate::native::HuggingFaceConfig) -> bool {
+    matches!(
+        config.model_type.as_str(),
+        "llama" | "mistral" | "qwen2" | "qwen3" | "clm" | "contrastive_lm"
+    ) || config.architectures.iter().any(|architecture| {
+        matches!(
+            architecture.as_str(),
+            "LlamaForCausalLM"
+                | "MistralForCausalLM"
+                | "Qwen2ForCausalLM"
+                | "Qwen3ForCausalLM"
+                | "CLMForCausalLM"
+        )
+    })
 }
 
 impl NativeModel for NativeLlama {
@@ -573,6 +694,23 @@ fn rms_norm(x: &[f32], weight: &[f32], eps: f32) -> NativeResult<Vec<f32>> {
         .recip();
     Ok(x.iter().zip(weight).map(|(v, w)| v * scale * w).collect())
 }
+
+fn rms_norm_heads(
+    x: &[f32],
+    weight: &[f32],
+    heads: usize,
+    head_dim: usize,
+    eps: f32,
+) -> NativeResult<Vec<f32>> {
+    if x.len() != heads * head_dim || weight.len() != head_dim {
+        return Err(NativeError("per-head RMSNorm dimension mismatch".into()));
+    }
+    let mut output = Vec::with_capacity(x.len());
+    for head in x.chunks_exact(head_dim) {
+        output.extend(rms_norm(head, weight, eps)?);
+    }
+    Ok(output)
+}
 fn add(a: Vec<f32>, b: Vec<f32>) -> NativeResult<Vec<f32>> {
     if a.len() != b.len() {
         return Err(NativeError("residual dimension mismatch".into()));
@@ -608,47 +746,45 @@ fn softmax(values: &mut [f32]) {
     }
 }
 
-fn matrix(
-    tensors: &mut HashMap<String, (Vec<usize>, Vec<f32>)>,
-    name: &str,
-) -> NativeResult<Matrix> {
-    let (shape, data) = tensors
+fn matrix(tensors: &mut HashMap<String, StoredTensor>, name: &str) -> NativeResult<Matrix> {
+    let tensor = tensors
         .remove(name)
         .ok_or_else(|| NativeError(format!("missing tensor {name}")))?;
-    if shape.len() != 2 {
+    if tensor.shape.len() != 2 {
         return Err(NativeError(format!("tensor {name} is not a matrix")));
     }
+    let data = match tensor.data {
+        TensorData::F32(data) => MatrixData::F32(Arc::new(data)),
+        TensorData::F16(data) => MatrixData::F16(Arc::new(data)),
+        TensorData::BF16(data) => MatrixData::BF16(Arc::new(data)),
+        TensorData::Quantized(data) => MatrixData::Quantized(data),
+    };
     Ok(Matrix {
-        rows: shape[0],
-        cols: shape[1],
-        data: MatrixData::Dense(Arc::new(data)),
+        rows: tensor.shape[0],
+        cols: tensor.shape[1],
+        data,
         lora: None,
     })
 }
-fn vector(
-    tensors: &mut HashMap<String, (Vec<usize>, Vec<f32>)>,
-    name: &str,
-) -> NativeResult<Vec<f32>> {
-    let (shape, data) = tensors
+fn vector(tensors: &mut HashMap<String, StoredTensor>, name: &str) -> NativeResult<Vec<f32>> {
+    let tensor = tensors
         .remove(name)
         .ok_or_else(|| NativeError(format!("missing tensor {name}")))?;
-    if shape.len() != 1 {
+    if tensor.shape.len() != 1 {
         return Err(NativeError(format!("tensor {name} is not a vector")));
     }
-    Ok(data)
+    Ok(tensor.data.into_f32())
 }
-fn optional_vector(
-    tensors: &mut HashMap<String, (Vec<usize>, Vec<f32>)>,
-    name: &str,
-) -> Option<Vec<f32>> {
+fn optional_vector(tensors: &mut HashMap<String, StoredTensor>, name: &str) -> Option<Vec<f32>> {
     tensors
         .remove(name)
-        .and_then(|(shape, data)| (shape.len() == 1).then_some(data))
+        .and_then(|tensor| (tensor.shape.len() == 1).then(|| tensor.data.into_f32()))
 }
 
 fn load_tensors(
     paths: &[std::path::PathBuf],
-) -> NativeResult<HashMap<String, (Vec<usize>, Vec<f32>)>> {
+    quantization: Option<QuantizationConfig>,
+) -> NativeResult<HashMap<String, StoredTensor>> {
     let mut output = HashMap::new();
     for path in paths {
         let bytes = fs::read(path)
@@ -659,15 +795,27 @@ fn load_tensors(
             let view = file
                 .tensor(name)
                 .map_err(|e| NativeError(format!("cannot read tensor {name}: {e}")))?;
-            let data = decode(view.dtype(), view.data())?;
+            let mut data = decode(view.dtype(), view.data())?;
             let expected: usize = view.shape().iter().product();
             if data.len() != expected {
                 return Err(NativeError(format!(
                     "tensor {name} has invalid byte length"
                 )));
             }
+            if let (Some(config), [rows, cols]) = (quantization, view.shape()) {
+                let values = data.into_f32();
+                data = TensorData::Quantized(QuantizedMatrix::quantize(
+                    *rows, *cols, &values, config,
+                )?);
+            }
             if output
-                .insert(name.to_owned(), (view.shape().to_vec(), data))
+                .insert(
+                    name.to_owned(),
+                    StoredTensor {
+                        shape: view.shape().to_vec(),
+                        data,
+                    },
+                )
                 .is_some()
             {
                 return Err(NativeError(format!("duplicate tensor {name}")));
@@ -677,20 +825,26 @@ fn load_tensors(
     Ok(output)
 }
 
-fn decode(dtype: Dtype, bytes: &[u8]) -> NativeResult<Vec<f32>> {
+fn decode(dtype: Dtype, bytes: &[u8]) -> NativeResult<TensorData> {
     match dtype {
-        Dtype::F32 => Ok(bytes
-            .chunks_exact(4)
-            .map(|b| f32::from_le_bytes(b.try_into().unwrap()))
-            .collect()),
-        Dtype::F16 => Ok(bytes
-            .chunks_exact(2)
-            .map(|b| f16::from_bits(u16::from_le_bytes(b.try_into().unwrap())).to_f32())
-            .collect()),
-        Dtype::BF16 => Ok(bytes
-            .chunks_exact(2)
-            .map(|b| bf16::from_bits(u16::from_le_bytes(b.try_into().unwrap())).to_f32())
-            .collect()),
+        Dtype::F32 => Ok(TensorData::F32(
+            bytes
+                .chunks_exact(4)
+                .map(|b| f32::from_le_bytes(b.try_into().unwrap()))
+                .collect(),
+        )),
+        Dtype::F16 => Ok(TensorData::F16(
+            bytes
+                .chunks_exact(2)
+                .map(|b| u16::from_le_bytes(b.try_into().unwrap()))
+                .collect(),
+        )),
+        Dtype::BF16 => Ok(TensorData::BF16(
+            bytes
+                .chunks_exact(2)
+                .map(|b| u16::from_le_bytes(b.try_into().unwrap()))
+                .collect(),
+        )),
         other => Err(NativeError(format!(
             "unsupported native tensor dtype {other:?}; expected F32, F16, or BF16"
         ))),
@@ -700,6 +854,52 @@ fn decode(dtype: Dtype, bytes: &[u8]) -> NativeResult<Vec<f32>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn half_precision_matrices_stay_compact_and_multiply() {
+        let f16_matrix = Matrix {
+            rows: 1,
+            cols: 2,
+            data: MatrixData::F16(Arc::new(vec![
+                f16::from_f32(2.0).to_bits(),
+                f16::from_f32(3.0).to_bits(),
+            ])),
+            lora: None,
+        };
+        let bf16_matrix = Matrix {
+            rows: 1,
+            cols: 2,
+            data: MatrixData::BF16(Arc::new(vec![
+                bf16::from_f32(2.0).to_bits(),
+                bf16::from_f32(3.0).to_bits(),
+            ])),
+            lora: None,
+        };
+        assert_eq!(f16_matrix.mv(&[4.0, 5.0]).unwrap(), vec![23.0]);
+        assert_eq!(bf16_matrix.mv(&[4.0, 5.0]).unwrap(), vec![23.0]);
+    }
+    #[test]
+    fn accepts_checkpoint_specific_clm_model_type() {
+        let config = crate::native::HuggingFaceConfig::from_json(
+            r#"{"model_type":"clm","architectures":["CLMForCausalLM"]}"#,
+        )
+        .unwrap();
+        assert!(is_supported_decoder_config(&config));
+
+        let qwen3 = crate::native::HuggingFaceConfig::from_json(
+            r#"{"model_type":"qwen3","architectures":["Qwen3ForCausalLM"]}"#,
+        )
+        .unwrap();
+        assert!(is_supported_decoder_config(&qwen3));
+    }
+    #[test]
+    fn applies_qwen3_per_head_qk_normalization() {
+        let normalized = rms_norm_heads(&[3.0, 4.0, 6.0, 8.0], &[1.0, 1.0], 2, 2, 0.0).unwrap();
+        let expected = 2.0_f32.sqrt();
+        assert!((normalized[0] - 0.6 * expected).abs() < 1e-6);
+        assert!((normalized[1] - 0.8 * expected).abs() < 1e-6);
+        assert!((normalized[2] - 0.6 * expected).abs() < 1e-6);
+        assert!((normalized[3] - 0.8 * expected).abs() < 1e-6);
+    }
     #[test]
     fn rope_position_zero_is_identity() {
         let mut x = vec![1.0, 2.0, 3.0, 4.0];

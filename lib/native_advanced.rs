@@ -5,6 +5,7 @@
 //! the numerically sensitive objectives, cache lifecycle, and quantization.
 
 use crate::native::{NativeError, NativeResult};
+use rayon::prelude::*;
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -125,6 +126,7 @@ impl QuantizedMatrix {
             return Err(NativeError("quantized matvec dimension mismatch".into()));
         }
         Ok((0..self.rows)
+            .into_par_iter()
             .map(|row| {
                 (0..self.cols)
                     .map(|column| self.value(row * self.cols + column) * input[column])

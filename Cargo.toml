@@ -33,7 +33,7 @@ candle = [
 ]
 # A backend-neutral inference runtime. This feature deliberately has no Candle
 # dependency and can be built with `--no-default-features --features native`.
-native = ["dep:half", "dep:hf-hub", "dep:regex", "dep:safetensors", "dep:tokenizers", "dep:ureq"]
+native = ["dep:half", "dep:hf-hub", "dep:rayon", "dep:regex", "dep:safetensors", "dep:tokenizers", "dep:ureq"]
 
 [dependencies]
 ndarray = { version = "0.15.6", features = ["serde"], optional = true }
@@ -56,3 +56,4 @@ half = { version = "2.4", optional = true }
 safetensors = { version = "0.4", optional = true }
 ureq = { version = "2.9", features = ["json"], optional = true }
 regex = { version = "1.10", optional = true }
+rayon = { version = "1.10", optional = true }

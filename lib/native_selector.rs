@@ -78,7 +78,7 @@ impl HuggingFaceModel {
     pub fn is_native_llama_compatible(&self) -> bool {
         matches!(
             self.model_type.as_deref(),
-            Some("llama" | "mistral" | "qwen2")
+            Some("llama" | "mistral" | "qwen2" | "qwen3" | "clm" | "contrastive_lm")
         )
     }
 }
