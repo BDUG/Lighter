@@ -233,6 +233,7 @@ dependencies = [
  "ndarray",
  "ndarray-rand",
  "rand",
+ "rayon",
  "regex",
  "safetensors",
  "savefile",

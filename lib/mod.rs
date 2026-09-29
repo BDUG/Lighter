@@ -1,5 +1,9 @@
 #[cfg(feature = "native")]
+pub mod contrastive_lm;
+#[cfg(feature = "native")]
 pub mod native;
+#[cfg(feature = "native")]
+pub use contrastive_lm::{ContrastiveLm, CLM_V01_8B_MODEL_ID};
 #[cfg(feature = "native")]
 mod native_llama;
 #[cfg(feature = "native")]

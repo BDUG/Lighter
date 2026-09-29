@@ -66,6 +66,10 @@ cargo run --example auto_native_generate \
 # Fine-tune the LM head of a local snapshot with LoRA.
 cargo run --example native_finetune \
   --no-default-features --features native -- MODEL_DIR
+
+# Download and run Contrastive-LM/CLM-v0.1-8B directly from Hugging Face.
+cargo run --release --example clm_generate \
+  --no-default-features --features native -- "Your prompt"
 ```
 
 After selecting a model, the selection example asks whether to download it. If
@@ -76,6 +80,29 @@ The selection and automatic-generation examples require network access.
 Set `HF_TOKEN` before running them when access to a gated or private Hugging
 Face model is required. Local model directories must contain the model config,
 tokenizer, and safetensors files expected in a Hugging Face snapshot.
+
+`clm_generate` is a ready-to-run entry point for
+[`Contrastive-LM/CLM-v0.1-8B`](https://huggingface.co/Contrastive-LM/CLM-v0.1-8B).
+It downloads and caches the official config, tokenizer, and all safetensors
+shards on its first run, then performs generation with the built-in native
+Llama/Qwen-family decoder, including Qwen3 per-head Q/K normalization. F16 and
+BF16 matrix weights remain in their checkpoint
+precision during inference instead of being expanded to `f32`, so the 8B
+checkpoint uses roughly 16 GB for weights plus working memory. Use a release
+build as shown above; set `HF_TOKEN` if the Hub requires authentication.
+Set `CLM_MODEL_DIR` to a downloaded snapshot directory to run fully offline
+and skip all Hub requests.
+Set `CLM_QUANTIZATION=int8` or `CLM_QUANTIZATION=int4` to reduce resident matrix
+weight memory. Quantized loading converts matrices one checkpoint shard at a
+time, so it does not require enough RAM to hold the full half-precision model
+first. Native dense matrix-vector products use all
+available CPU cores; control their number with Rayon's `RAYON_NUM_THREADS`.
+Applications can use the same implementation through `ContrastiveLm::from_hub`
+or load an existing snapshot without network access with
+`ContrastiveLm::from_dir`, then call `generate` repeatedly without reloading
+the model. See the [complete CLM guide](docs/contrastive_lm.MD) for authenticated
+downloads, offline snapshots, quantization, library examples, resource
+requirements, and troubleshooting.
 
 ## Native inference runtime
 
