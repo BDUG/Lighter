@@ -21,6 +21,11 @@ pub mod native_prompt;
 #[cfg(feature = "native")]
 pub mod native_training;
 
+/// Joint-embedding predictive architectures for images and videos.
+pub mod jepa;
+/// Continuous-time neural ODE and liquid neural-network building blocks.
+pub mod liquid;
+
 #[cfg(feature = "candle")]
 pub mod prelude;
 

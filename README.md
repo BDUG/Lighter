@@ -48,6 +48,37 @@ cargo run --example native_finetune --no-default-features --features native
 cargo run --example native_prompt --no-default-features --features native
 ```
 
+### JEPA and liquid-network examples
+
+The backend-independent `jepa` module supplies image and video joint-embedding
+predictive architectures (I-JEPA and tube-masked V-JEPA), including a trainable
+online encoder/predictor and exponential-moving-average target encoder. The
+`liquid` module supplies Euler, Heun, and RK4 Neural ODE solvers, liquid
+time-constant and closed-form continuous-time (CfC) recurrent cells, irregular
+time-series inference, and a compact stacked LFM with trainable readout. Both
+examples run without Candle:
+
+```bash
+cargo run --example jepa --no-default-features
+cargo run --example liquid_networks --no-default-features
+```
+
+Internet-backed examples download the Rust logo for I-JEPA/V-JEPA training and
+the public daily-minimum-temperature dataset for liquid forecasting:
+
+```bash
+cargo run --example internet_jepa --no-default-features --features native
+cargo run --example internet_liquid --no-default-features --features native
+```
+
+These examples cite and follow the official Meta I-JEPA/V-JEPA repositories and
+the official Liquid Time-Constant Networks implementation in their module-level
+documentation. They require network access on each run.
+
+`MeanEncoder` is an intentionally small reference encoder. Implement
+`PatchEncoder` to connect JEPA masking and prediction to a CNN, ViT, or another
+production encoder.
+
 Model-backed examples accept arguments after `--`:
 
 ```bash
