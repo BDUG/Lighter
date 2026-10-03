@@ -25,6 +25,10 @@ pub mod native_training;
 pub mod jepa;
 /// Continuous-time neural ODE and liquid neural-network building blocks.
 pub mod liquid;
+/// Vector-valued attention for sets, sequences, and point clouds.
+pub mod vec_attention;
+/// Exact distributed prefill and decode context parallelism.
+pub mod context_parallel;
 
 #[cfg(feature = "candle")]
 pub mod prelude;
