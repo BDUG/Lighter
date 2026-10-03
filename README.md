@@ -48,7 +48,7 @@ cargo run --example native_finetune --no-default-features --features native
 cargo run --example native_prompt --no-default-features --features native
 ```
 
-### JEPA and liquid-network examples
+### Backend-independent architecture examples
 
 The backend-independent `jepa` module supplies image and video joint-embedding
 predictive architectures (I-JEPA and tube-masked V-JEPA), including a trainable
@@ -62,6 +62,17 @@ examples run without Candle:
 cargo run --example jepa --no-default-features
 cargo run --example liquid_networks --no-default-features
 ```
+
+### Attention examples
+
+```bash
+cargo run --example vec_attention --no-default-features
+cargo run --example context_parallel_attention --no-default-features
+```
+
+See the **[attention usage book](docs/attention_usage_book.MD)** for complete
+VecAttention and context-parallel examples, tensor shapes, validation,
+research references, current capabilities, and the roadmap for each feature.
 
 Internet-backed examples download the Rust logo for I-JEPA/V-JEPA training and
 the public daily-minimum-temperature dataset for liquid forecasting:
