@@ -9,6 +9,14 @@
 //! This module is backend independent and intentionally operates on ordinary
 //! Rust slices.  It supports self- and cross-attention, dense or k-nearest
 //! neighbourhoods, masks, grouped attention weights, and batched inputs.
+//!
+//! # Reference
+//!
+//! This portable Rust implementation is informed by the `anminliu` project's
+//! [VecAttention reference repository](https://github.com/anminliu/VecAttention).
+//! Cite that upstream project when its vector-attention approach is used in
+//! academic or derived work; see the crate's attention usage book for a
+//! copyable citation.
 
 use rand::{rngs::StdRng, Rng, SeedableRng};
 use serde::{Deserialize, Serialize};

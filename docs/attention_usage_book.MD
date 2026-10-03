@@ -351,7 +351,9 @@ coverage, and attention with no visible keys. Handle `VecAttentionError` and
 
 # Research references
 
-- [VecAttention reference repository](https://github.com/anminliu/VecAttention).
+- `anminliu`, [*VecAttention*](https://github.com/anminliu/VecAttention), GitHub
+  repository. This is the primary upstream reference for the vector-attention
+  work documented in Part I.
 - [arXiv:2402.01763](https://arxiv.org/pdf/2402.01763): blockwise and
   context-partitioned attention foundations.
 - [vLLM Decode Context Parallelism](https://vllm.ai/blog/2026-08-07-decode-context-parallelism):
@@ -363,6 +365,22 @@ coverage, and attention with no visible keys. Handle `VecAttentionError` and
 
 These are algorithmic references. The portable Rust implementation does not
 claim to reproduce a particular CUDA kernel, network stack or benchmark result.
+
+## Citing VecAttention
+
+When publishing work derived from the vector-attention implementation or its
+examples, cite the upstream repository. Because the repository does not expose
+a versioned citation in this crate, include the revision and access date used
+by your work. A copyable generic BibTeX entry is:
+
+```bibtex
+@software{liu_vecattention,
+  author       = {{anminliu}},
+  title        = {VecAttention},
+  url          = {https://github.com/anminliu/VecAttention},
+  note         = {GitHub repository; include the revision and access date used}
+}
+```
 
 # Capability roadmap
 

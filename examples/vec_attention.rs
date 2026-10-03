@@ -1,5 +1,6 @@
 //! The three common VecAttention examples: global self-attention, local point
 //! attention, and masked cross/sequence attention.
+//! Inspired by <https://github.com/anminliu/VecAttention>.
 
 use candlelighter::vec_attention::{causal_mask, Neighborhood, VecAttention, VecAttentionConfig};
 

@@ -73,6 +73,10 @@ cargo run --example context_parallel_attention --no-default-features
 See the **[attention usage book](docs/attention_usage_book.MD)** for complete
 VecAttention and context-parallel examples, tensor shapes, validation,
 research references, current capabilities, and the roadmap for each feature.
+The vector-attention implementation is informed by the `anminliu` project's
+[`anminliu/VecAttention`](https://github.com/anminliu/VecAttention); please cite
+the upstream repository as described in the book when using it in derived or
+academic work.
 
 Internet-backed examples download the Rust logo for I-JEPA/V-JEPA training and
 the public daily-minimum-temperature dataset for liquid forecasting:
