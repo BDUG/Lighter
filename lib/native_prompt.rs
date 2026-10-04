@@ -159,10 +159,19 @@ pub trait OutputConstraint {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum ConstraintSpec {
-    Choice { choices: Vec<String> },
-    Regex { pattern: String },
+    Choice {
+        choices: Vec<String>,
+    },
+    Regex {
+        pattern: String,
+    },
     Json,
-    Gbnf { grammar: String, root: String },
+    /// A JSON object at the root, for OpenAI response_format=json_object.
+    JsonObject,
+    Gbnf {
+        grammar: String,
+        root: String,
+    },
 }
 
 impl ConstraintSpec {
@@ -171,6 +180,7 @@ impl ConstraintSpec {
             Self::Choice { choices } => Ok(Box::new(ChoiceConstraint::new(choices.clone())?)),
             Self::Regex { pattern } => Ok(Box::new(RegexConstraint::new(pattern)?)),
             Self::Json => Ok(Box::new(JsonConstraint)),
+            Self::JsonObject => Ok(Box::new(JsonObjectConstraint)),
             Self::Gbnf { grammar, root } => Ok(Box::new(GbnfGrammar::parse(grammar, root)?)),
         }
     }
@@ -237,6 +247,21 @@ impl OutputConstraint for JsonConstraint {
     }
     fn description(&self) -> &str {
         "JSON"
+    }
+}
+
+/// JSON with an object root; arrays and scalar roots are excluded.
+pub struct JsonObjectConstraint;
+impl OutputConstraint for JsonObjectConstraint {
+    fn allows_prefix(&self, text: &str) -> bool {
+        let trimmed = text.trim_start();
+        (trimmed.is_empty() || trimmed.starts_with('{')) && json_prefix_valid(text)
+    }
+    fn is_complete(&self, text: &str) -> bool {
+        serde_json::from_str::<Value>(text).is_ok_and(|value| value.is_object())
+    }
+    fn description(&self) -> &str {
+        "JSON object"
     }
 }
 
