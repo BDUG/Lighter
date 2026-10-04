@@ -1,5 +1,7 @@
 # Running the examples
 
+[Full source cookbook](code_examples.md) · [CPU and Arm NN serving](model_serving.md) · [Handbook](../docs/handbook.md)
+
 Run these commands from the repository root, where `Cargo.toml` lives. Install
 [stable Rust and Cargo](https://rustup.rs/) and a native C/C++ compiler first. Cargo downloads build dependencies
 on the first run. Examples use the CPU; model inference benefits from `--release`.
@@ -259,3 +261,21 @@ cargo run --locked --no-default-features --features candle --example ai_winter -
 safetensors and reloads them for inference in a separate process. Both modes check
 the truth table. See the [step-by-step README](../README.md#ai-winter-example-learn-xor-then-run-inference).
 Training overwrites the supplied checkpoint path.
+
+## Context-parallel attention
+
+```bash
+cargo run --locked --no-default-features --example context_parallel_attention
+```
+
+[context_parallel_attention.rs](context_parallel_attention.rs) demonstrates exact
+attention over sharded KV data using stable online-softmax reduction. It is an
+in-process CPU reference, with no distributed transport required. See the
+[capability reference](../docs/handbook.md#context-parallel-attention) for shapes,
+masking, GQA/MQA and the remaining distributed-runtime work.
+
+## Model serving
+
+Follow [model_serving.md](model_serving.md) for CPU Qwen3 and Arm NN delegate
+startup, configuration, HTTP requests, authentication and runtime prerequisites.
+The [complete source cookbook](code_examples.md) contains the host code listings.
