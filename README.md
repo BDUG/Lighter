@@ -1,14 +1,16 @@
 # Rust Lighter
 
+## Disclaimer & Project Status
+
+This repository is an independent, non-commercial hobby project developed purely in spare time. 
+
+- **Non-Commercial:** This project does not generate revenue, offer commercial services, or represent any business entity.
+- **Maintenance & Support:** It is provided on an "as-is" basis without dedicated support, formal roadmaps, or service-level agreements (SLAs). Updates and bug fixes occur purely at the author's discretion and availability.
+- **No Liability:** The author accepts no liability or responsibility for any direct, indirect, incidental, or consequential damages resulting from the use, inability to use, or reliance on this software. Use it entirely at your own risk.
+
+## Handbook 
+
 A Keras-inspired Rust machine-learning library built on [Candle](https://github.com/huggingface/candle), with a Candle-free native implementation. 
-
-Experimental; not production-ready.
-
-From a checkout with stable Rust, try a model-free CPU example:
-
-```bash
-cargo run --locked --example native_advanced --no-default-features --features native
-```
 
 See the **[Usage handbook](docs/handbook.md#usage)** for the complete capability table, setup, examples, model downloads, and current limitations. For the dedicated 8B runner, see the [CLM guide](docs/handbook.md#clm).
 
