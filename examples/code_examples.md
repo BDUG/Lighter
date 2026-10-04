@@ -3307,7 +3307,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ### G-Retriever Python implementation and examples
 
-These listings adapt the [MIT-licensed upstream G-Retriever](../third_party/g_retriever/LICENSE). See the [integration guide](../docs/handbook.md#retriever) for installation, pretrained models and behavior differences.
+These listings adapt the [MIT-licensed upstream G-Retriever](python/g_retriever/LICENSE). See the [integration guide](../docs/handbook.md#retriever) for installation, pretrained models and behavior differences.
 
 <a id="examples-corepy"></a>
 
@@ -3318,13 +3318,12 @@ These listings adapt the [MIT-licensed upstream G-Retriever](../third_party/g_re
 """Adapted from XiaoxinHe/G-Retriever (MIT, copyright 2024 Xiaoxin He).
 
 PCST retrieval follows src/dataset/utils/retrieval.py; graph soft prompting follows
-src/model/graph_llm.py. Original source and license: third_party/g_retriever/.
+src/model/graph_llm.py. Upstream: https://github.com/XiaoxinHe/G-Retriever
+Revision: 315b0ff8a206536067602fb97e77c10f4d646d5d. See LICENSE in this package.
 """
 from dataclasses import dataclass
 import hashlib
-import importlib.util
 import json
-from pathlib import Path
 import re
 
 import numpy as np
@@ -3339,10 +3338,7 @@ import torch
 from torch import nn
 from torch_geometric.data import Batch, Data
 
-ROOT = Path(__file__).resolve().parents[3]
-_spec = importlib.util.spec_from_file_location("lighter_upstream_gnn", ROOT / "third_party/g_retriever/src/model/gnn.py")
-_gnn = importlib.util.module_from_spec(_spec)
-_spec.loader.exec_module(_gnn)
+from . import gnn as _gnn
 
 
 class HashEncoder:
@@ -4281,5 +4277,113 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let output = decode_context_parallel(&query, 11, &shards, DecodeConfig::for_head_dim(2))?;
     println!("decode output: {:.4?}", output[0]);
     Ok(())
+}
+```
+
+### G-Retriever GNN layers
+
+The example package imports these layers directly. Upstream attribution and the
+MIT license are retained in the package.
+
+<!-- source: python/g_retriever/gnn.py -->
+```python
+"""GNN layers from XiaoxinHe/G-Retriever, revision 315b0ff8a206536067602fb97e77c10f4d646d5d.
+MIT, copyright 2024 Xiaoxin He; see LICENSE in this package.
+"""
+import torch
+import torch.nn.functional as F
+from torch_geometric.nn import GCNConv, TransformerConv, GATConv
+
+
+class GCN(torch.nn.Module):
+    def __init__(self, in_channels, hidden_channels, out_channels, num_layers, dropout, num_heads=-1):
+        super(GCN, self).__init__()
+        self.convs = torch.nn.ModuleList()
+        self.convs.append(GCNConv(in_channels, hidden_channels))
+        self.bns = torch.nn.ModuleList()
+        self.bns.append(torch.nn.BatchNorm1d(hidden_channels))
+        for _ in range(num_layers - 2):
+            self.convs.append(GCNConv(hidden_channels, hidden_channels))
+            self.bns.append(torch.nn.BatchNorm1d(hidden_channels))
+        self.convs.append(GCNConv(hidden_channels, out_channels))
+        self.dropout = dropout
+
+    def reset_parameters(self):
+        for conv in self.convs:
+            conv.reset_parameters()
+        for bn in self.bns:
+            bn.reset_parameters()
+
+    def forward(self, x, adj_t, edge_attr):
+        for i, conv in enumerate(self.convs[:-1]):
+            x = conv(x, adj_t)
+            x = self.bns[i](x)
+            x = F.relu(x)
+            x = F.dropout(x, p=self.dropout, training=self.training)
+        x = self.convs[-1](x, adj_t)
+        return x, edge_attr
+
+
+class GraphTransformer(torch.nn.Module):
+    def __init__(self, in_channels, hidden_channels, out_channels, num_layers, dropout, num_heads=-1):
+        super(GraphTransformer, self).__init__()
+        self.convs = torch.nn.ModuleList()
+        self.convs.append(TransformerConv(in_channels=in_channels, out_channels=hidden_channels//num_heads, heads=num_heads, edge_dim=in_channels, dropout=dropout))
+        self.bns = torch.nn.ModuleList()
+        self.bns.append(torch.nn.BatchNorm1d(hidden_channels))
+        for _ in range(num_layers - 2):
+            self.convs.append(TransformerConv(in_channels=hidden_channels, out_channels=hidden_channels//num_heads, heads=num_heads, edge_dim=in_channels, dropout=dropout,))
+            self.bns.append(torch.nn.BatchNorm1d(hidden_channels))
+        self.convs.append(TransformerConv(in_channels=hidden_channels, out_channels=out_channels//num_heads, heads=num_heads, edge_dim=in_channels, dropout=dropout,))
+        self.dropout = dropout
+
+    def reset_parameters(self):
+        for conv in self.convs:
+            conv.reset_parameters()
+        for bn in self.bns:
+            bn.reset_parameters()
+
+    def forward(self, x, adj_t, edge_attr):
+        for i, conv in enumerate(self.convs[:-1]):
+            x = conv(x, edge_index=adj_t, edge_attr=edge_attr)
+            x = self.bns[i](x)
+            x = F.relu(x)
+            x = F.dropout(x, p=self.dropout, training=self.training)
+        x = self.convs[-1](x, edge_index=adj_t, edge_attr=edge_attr)
+        return x, edge_attr
+
+class GAT(torch.nn.Module):
+    def __init__(self, in_channels, hidden_channels, out_channels, num_layers, dropout, num_heads=4):
+        super(GAT, self).__init__()
+        self.convs = torch.nn.ModuleList()
+        self.convs.append(GATConv(in_channels, hidden_channels, heads=num_heads, concat=False))
+        self.bns = torch.nn.ModuleList()
+        self.bns.append(torch.nn.BatchNorm1d(hidden_channels))
+        for _ in range(num_layers - 2):
+            self.convs.append(GATConv(hidden_channels, hidden_channels, heads=num_heads, concat=False))
+            self.bns.append(torch.nn.BatchNorm1d(hidden_channels))
+        self.convs.append(GATConv(hidden_channels, out_channels, heads=num_heads, concat=False))
+        self.dropout = dropout
+
+    def reset_parameters(self):
+        for conv in self.convs:
+            conv.reset_parameters()
+        for bn in self.bns:
+            bn.reset_parameters()
+
+    def forward(self, x, edge_index, edge_attr):
+        for i, conv in enumerate(self.convs[:-1]):
+            x = conv(x, edge_index=edge_index, edge_attr=edge_attr)
+            x = self.bns[i](x)
+            x = F.relu(x)
+            x = F.dropout(x, p=self.dropout, training=self.training)
+        x = self.convs[-1](x,edge_index=edge_index, edge_attr=edge_attr)
+        return x, edge_attr
+
+
+load_gnn_model = {
+    'gcn': GCN,
+    'gat': GAT,
+    'gt': GraphTransformer,
 }
 ```
