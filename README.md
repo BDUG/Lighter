@@ -1,5 +1,8 @@
 # Rust Lighter
 
+A Keras-inspired Rust machine-learning library built on [Candle](https://github.com/huggingface/candle), including also aCandle-free native implementation. 
+
+
 ## Disclaimer & Project Status
 
 This repository is an independent, non-commercial hobby project developed purely in spare time. 
@@ -9,8 +12,6 @@ This repository is an independent, non-commercial hobby project developed purely
 - **No Liability:** The author accepts no liability or responsibility for any direct, indirect, incidental, or consequential damages resulting from the use, inability to use, or reliance on this software. Use it entirely at your own risk.
 
 ## Handbook 
-
-A Keras-inspired Rust machine-learning library built on [Candle](https://github.com/huggingface/candle), with a Candle-free native implementation. 
 
 See the **[Usage handbook](docs/handbook.md#usage)**.
 
