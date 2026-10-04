@@ -1,3 +1,6 @@
+"""GNN layers from XiaoxinHe/G-Retriever, revision 315b0ff8a206536067602fb97e77c10f4d646d5d.
+MIT, copyright 2024 Xiaoxin He; see LICENSE in this package.
+"""
 import torch
 import torch.nn.functional as F
 from torch_geometric.nn import GCNConv, TransformerConv, GATConv

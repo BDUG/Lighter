@@ -186,8 +186,9 @@ The defaults run actual PCST retrieval and train a graph soft prompt against a t
 random language model without downloading weights. They demonstrate the pipeline;
 meaningful QA requires a pretrained model, semantic embeddings and a trained adapter.
 Source: [retrieval](python/g_retriever_retrieve.py), [training](python/g_retriever_train.py),
-[generation](python/g_retriever_generate.py). The original MIT-licensed implementation
-is preserved in [third_party/g_retriever](../third_party/g_retriever/README.md).
+[generation](python/g_retriever_generate.py). The required GNN module and [MIT license](python/g_retriever/LICENSE) live in the
+example package. The full [upstream research repository](https://github.com/XiaoxinHe/G-Retriever)
+is available separately for benchmark scripts and datasets.
 
 ## Native Graph2Text instruction fine-tuning
 

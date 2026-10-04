@@ -1,13 +1,12 @@
 """Adapted from XiaoxinHe/G-Retriever (MIT, copyright 2024 Xiaoxin He).
 
 PCST retrieval follows src/dataset/utils/retrieval.py; graph soft prompting follows
-src/model/graph_llm.py. Original source and license: third_party/g_retriever/.
+src/model/graph_llm.py. Upstream: https://github.com/XiaoxinHe/G-Retriever
+Revision: 315b0ff8a206536067602fb97e77c10f4d646d5d. See LICENSE in this package.
 """
 from dataclasses import dataclass
 import hashlib
-import importlib.util
 import json
-from pathlib import Path
 import re
 
 import numpy as np
@@ -22,10 +21,7 @@ import torch
 from torch import nn
 from torch_geometric.data import Batch, Data
 
-ROOT = Path(__file__).resolve().parents[3]
-_spec = importlib.util.spec_from_file_location("lighter_upstream_gnn", ROOT / "third_party/g_retriever/src/model/gnn.py")
-_gnn = importlib.util.module_from_spec(_spec)
-_spec.loader.exec_module(_gnn)
+from . import gnn as _gnn
 
 
 class HashEncoder:

@@ -36,9 +36,8 @@ This is the consolidated documentation for Lighter. Commands assume the reposito
 root. Full source listings are collected in
 [the example cookbook](../examples/code_examples.md), so a reader can inspect both
 an API recipe and the complete program that surrounds it. The examples directory
-also contains a short run guide. The G-Retriever source retains its own upstream
-README and license under `third_party/`; those files describe the external research
-implementation rather than another Lighter manual.
+also contains a short run guide. The G-Retriever example package retains attribution and the upstream MIT license
+for its adapted retrieval logic and required GNN module.
 
 ### Choose a workflow
 
@@ -1740,11 +1739,13 @@ exports the same property-graph schema used by this pipeline.
 
 ## G-Retriever integration
 
-Lighter includes the implementation from [XiaoxinHe/G-Retriever](https://github.com/XiaoxinHe/G-Retriever),
-pinned to revision `315b0ff8a206536067602fb97e77c10f4d646d5d`, plus CPU-compatible
-examples integrating its retrieval and graph soft-prompt architecture. The upstream
-Python sources are preserved unchanged in [third_party/g_retriever](../third_party/g_retriever/README.md),
-with the [MIT license](../third_party/g_retriever/LICENSE) and [provenance](../third_party/g_retriever/PROVENANCE.md).
+Lighter includes CPU-compatible examples adapting
+[XiaoxinHe/G-Retriever](https://github.com/XiaoxinHe/G-Retriever), based on revision
+`315b0ff8a206536067602fb97e77c10f4d646d5d`. The integration implements its retrieval
+and graph soft-prompt architecture. The required GNN module lives in the example
+package, alongside the [upstream MIT license](../examples/python/g_retriever/LICENSE).
+The complete research repository is not bundled; consult upstream for benchmark
+scripts, dataset preparation and original training configurations.
 
 The integration implements actual PCST retrieval and learned graph conditioning:
 
@@ -1944,7 +1945,7 @@ print(retriever.generate([retrieval], ["Who wrote notes?"]))
 
 ### Differences from upstream and reproduction
 
-The upstream research source is preserved verbatim. The adapted integration changes:
+The GNN module is retained from the pinned upstream revision. The adapted integration changes:
 
 - GPU-specific two-device memory limits to an injectable, CPU-compatible causal LM.
 - The fixed 4096-dimensional soft prompt to the model's actual embedding width.
@@ -1954,15 +1955,13 @@ The upstream research source is preserved verbatim. The adapted integration chan
 - Top-ranked edge tie handling to use immutable cosine scores; empty edge shapes and
   invalid data are handled explicitly.
 
-The adapted training path freezes the LM and trains the GNN/projector. The vendored
-research implementation additionally supports LM LoRA and prompt-only baselines.
-Its original defaults, pretrained model choices and benchmark scripts remain in
-[upstream README](../third_party/g_retriever/README.md). Datasets and figures are not
-vendored; obtain and preprocess ExplaGraphs, SceneGraphs or WebQSP following upstream
-instructions before invoking those scripts from `third_party/g_retriever/`. Their CUDA,
-`torch_scatter`, PEFT, datasets and tracking dependencies are separate from the CPU
-integration requirements. The offline tests do not reproduce published benchmark scores
-or validate a downloaded pretrained checkpoint.
+The adapted training path freezes the LM and trains the GNN/projector. The
+[upstream research repository](https://github.com/XiaoxinHe/G-Retriever) additionally
+supports LM LoRA and prompt-only baselines. Obtain its benchmark scripts and datasets
+separately and follow its README for ExplaGraphs, SceneGraphs and WebQSP preprocessing.
+Its CUDA, `torch_scatter`, PEFT, dataset and tracking dependencies are separate from
+the CPU integration requirements. Offline tests do not reproduce published benchmark
+scores or validate a downloaded pretrained checkpoint.
 
 <a id="retriever-verify"></a>
 
