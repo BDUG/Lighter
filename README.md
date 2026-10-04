@@ -1,10 +1,8 @@
 # Rust Lighter
 
-A Keras-inspired Rust machine-learning library built on [Candle](https://github.com/huggingface/candle), with a Candle-free native inference and training runtime, JEPA, and liquid networks. Experimental; not production-ready.
+A Keras-inspired Rust machine-learning library built on [Candle](https://github.com/huggingface/candle), with a Candle-free native implementation. 
 
-```bash
-cargo add candlelighter
-```
+Experimental; not production-ready.
 
 From a checkout with stable Rust, try a model-free CPU example:
 
