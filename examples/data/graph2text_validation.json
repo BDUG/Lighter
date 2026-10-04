@@ -1,0 +1,7 @@
+[
+  {
+    "instruction": "Convert the following graph relations into a fluent, cohesive paragraph.",
+    "input": "<H> Charles Babbage <R> designed <T> Analytical Engine | <H> Ada Lovelace <R> wrote notes about <T> Analytical Engine",
+    "output": "Charles Babbage designed the Analytical Engine, and Ada Lovelace wrote notes about it."
+  }
+]

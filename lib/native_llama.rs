@@ -98,7 +98,7 @@ impl Matrix {
         let mut output = match &self.data {
             MatrixData::F32(data) => Ok(data
                 .par_chunks_exact(self.cols)
-                .map(|row| row.iter().zip(x).map(|(a, b)| a * b).sum())
+                .map(|row| crate::arm::dot_auto(row, x))
                 .collect()),
             MatrixData::F16(data) => Ok(data
                 .par_chunks_exact(self.cols)
@@ -342,6 +342,19 @@ impl NativeLlama {
         self.output.lora.as_ref()
     }
 
+    /// Installs a trained output-head adapter. Reuse its original base model and tokenizer.
+    pub fn set_lm_head_lora(&mut self, adapter: LoraAdapter) -> NativeResult<()> {
+        if adapter.dimensions() != (self.output.cols, self.output.rows) {
+            return Err(NativeError("adapter does not match language-model head dimensions".into()));
+        }
+        let (a, b) = adapter.weights();
+        if a.iter().chain(b).any(|value| !value.is_finite()) {
+            return Err(NativeError("adapter weights must be finite".into()));
+        }
+        self.output.lora = Some(adapter);
+        Ok(())
+    }
+
     /// Forks an existing sequence's paged KV state for beam search or
     /// speculative decoding without copying shared prefix pages.
     pub fn fork_sequence(&mut self, source: &str, destination: &str) -> NativeResult<()> {
@@ -466,7 +479,7 @@ impl NativeLlama {
 /// even though their tensors retain the standard Llama layout. Prefer the
 /// architecture declaration in that case so those checkpoints do not require
 /// rewriting `config.json` before loading.
-fn is_supported_decoder_config(config: &crate::native::HuggingFaceConfig) -> bool {
+pub(crate) fn is_supported_decoder_config(config: &crate::native::HuggingFaceConfig) -> bool {
     matches!(
         config.model_type.as_str(),
         "llama" | "mistral" | "qwen2" | "qwen3" | "clm" | "contrastive_lm"

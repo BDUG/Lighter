@@ -1,0 +1,12 @@
+[
+  {
+    "instruction": "Convert the following graph relations into a fluent, cohesive paragraph.",
+    "input": "<H> Alan Bean <R> birthPlace <T> Wheeler, Texas | <H> Alan Bean <R> almaMater <T> UT Austin | <H> Alan Bean <R> mission <T> Apollo 12",
+    "output": "Born in Wheeler, Texas, Alan Bean graduated from UT Austin and served on the Apollo 12 mission."
+  },
+  {
+    "instruction": "Convert the following graph relations into a fluent, cohesive paragraph.",
+    "input": "<H> Christopher Nolan <R> directed <T> Oppenheimer | <H> Oppenheimer <R> releaseYear <T> 2023",
+    "output": "Christopher Nolan directed the movie Oppenheimer, which was released in 2023."
+  }
+]

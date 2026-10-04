@@ -28,6 +28,10 @@ path = "src/serve.rs"
 required-features = ["server"]
 
 [features]
+# Optional ARM kernels and dynamically loaded TFLite external delegates.
+arm-sve = ["native"]
+arm-sme = ["native"]
+arm-npu = ["native", "dep:libloading"]
 default = ["candle", "native"]
 # OpenAI-compatible HTTP host for the native runtime.
 server = ["native", "dep:axum", "dep:tokio", "dep:tokio-stream", "dep:clap"]
@@ -43,6 +47,7 @@ candle = [
 native = ["dep:half", "dep:hf-hub", "dep:image", "dep:rayon", "dep:regex", "dep:safetensors", "dep:tokenizers", "dep:ureq"]
 
 [dependencies]
+libloading = { version = "0.8", optional = true }
 ndarray = { version = "0.15.6", features = ["serde"], optional = true }
 ndarray-rand = { version = "0.14.0", optional = true }
 rand = "0.8.5"
@@ -78,3 +83,38 @@ tower = { version = "0.5", features = ["util"] }
 name = "graph2text_native"
 path = "examples/graph2text_native.rs"
 required-features = ["native"]
+
+[[example]]
+name = "graph2text_finetune"
+path = "examples/graph2text_finetune.rs"
+required-features = ["native"]
+
+[[example]]
+name = "transformers_pipeline"
+path = "examples/transformers_pipeline.rs"
+required-features = ["native"]
+
+[[example]]
+name = "arm_acceleration"
+path = "examples/arm_acceleration.rs"
+required-features = ["native"]
+
+[[example]]
+name = "arm_npu_generate"
+path = "examples/arm_npu_generate.rs"
+required-features = ["arm-npu"]
+
+[[example]]
+name = "arm_npu_host"
+path = "examples/arm_npu_host.rs"
+required-features = ["arm-npu", "server"]
+
+[[example]]
+name = "candle_arm_bridge"
+path = "examples/candle_arm_bridge.rs"
+required-features = ["candle", "native"]
+
+[[example]]
+name = "ai_winter"
+path = "examples/ai_winter.rs"
+required-features = ["candle"]
