@@ -12,9 +12,7 @@ This repository is an independent, non-commercial hobby project developed purely
 
 A Keras-inspired Rust machine-learning library built on [Candle](https://github.com/huggingface/candle), with a Candle-free native implementation. 
 
-See the **[Usage handbook](docs/handbook.md#usage)** for the complete capability table, setup, examples, model downloads, and current limitations. For the dedicated 8B runner, see the [CLM guide](docs/handbook.md#clm).
-
-Serve models with the [OpenAI-compatible HTTP host](docs/handbook.md#host).
+See the **[Usage handbook](docs/handbook.md#usage)**.
 
 ## AI winter example: learn XOR, then run inference
 
