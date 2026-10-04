@@ -494,13 +494,22 @@ pub trait NativeModel {
 
 pub struct HuggingFaceBackend<M> {
     tokenizer: tokenizers::Tokenizer,
+    bos_token: Option<String>,
     model: M,
 }
 
 impl<M> HuggingFaceBackend<M> {
     pub fn new(model: M, artifacts: &HuggingFaceArtifacts) -> NativeResult<Self> {
         let tokenizer = load_tokenizer(&artifacts.tokenizer)?;
-        Ok(Self { tokenizer, model })
+        let bos_token = artifacts
+            .config
+            .bos_token_id
+            .and_then(|id| tokenizer.id_to_token(id));
+        Ok(Self {
+            tokenizer,
+            bos_token,
+            model,
+        })
     }
     pub fn into_model(self) -> M {
         self.model
@@ -522,7 +531,9 @@ fn load_tokenizer(path: &Path) -> NativeResult<tokenizers::Tokenizer> {
             let converted_merges = json
                 .get_mut("model")
                 .and_then(serde_json::Value::as_object_mut)
-                .filter(|model| model.get("type").and_then(serde_json::Value::as_str) == Some("BPE"))
+                .filter(|model| {
+                    model.get("type").and_then(serde_json::Value::as_str) == Some("BPE")
+                })
                 .and_then(|model| model.get_mut("merges"))
                 .and_then(serde_json::Value::as_array_mut)
                 .map(|merges| {
@@ -567,8 +578,14 @@ fn load_tokenizer(path: &Path) -> NativeResult<tokenizers::Tokenizer> {
 
 impl<M: NativeModel> NativeBackend for HuggingFaceBackend<M> {
     fn encode(&self, text: &str) -> NativeResult<Vec<u32>> {
+        // Chat templates (notably Llama 3) may already contain the BOS token.
+        // Do not apply a tokenizer post-processor that would insert it again.
+        let add_special_tokens = !self
+            .bos_token
+            .as_deref()
+            .is_some_and(|bos| text.starts_with(bos));
         self.tokenizer
-            .encode(text, true)
+            .encode(text, add_special_tokens)
             .map(|e| e.get_ids().to_vec())
             .map_err(|e| NativeError(format!("tokenization failed: {e}")))
     }
@@ -669,6 +686,31 @@ impl<B: NativeBackend> NativeEngine<B> {
         &mut self.backend
     }
 
+    /// Abort queued/active work and release every active sequence's backend cache.
+    /// Hosts use this after a batch-level error before accepting fresh requests.
+    pub fn abort_all(&mut self) {
+        for sequence in self.active.drain(..) {
+            self.backend.remove_sequence(&sequence.request.id);
+        }
+        self.waiting.clear();
+        self.cancelled.clear();
+    }
+
+    /// Decoded cumulative output for active sequences, for serving progress.
+    /// A backend may revise an unfinished Unicode suffix while decoding tokens;
+    /// stream consumers must buffer that suffix and possible stop-string prefixes.
+    pub fn progress(&self) -> NativeResult<Vec<(String, String)>> {
+        self.active
+            .iter()
+            .map(|sequence| {
+                Ok((
+                    sequence.request.id.clone(),
+                    self.backend.decode(&sequence.generated)?,
+                ))
+            })
+            .collect()
+    }
+
     /// Runs all admitted and queued requests to completion. Servers normally
     /// call [`Self::step`] instead so cancellation and new requests can be
     /// interleaved between decode iterations.
@@ -727,6 +769,16 @@ impl<B: NativeBackend> NativeEngine<B> {
                 }
                 effective_sampling.bad_token_ids.sort_unstable();
                 effective_sampling.bad_token_ids.dedup();
+            }
+            // Object-mode responses must not terminate on EOS before an object
+            // is complete. Completion itself is checked after each sampled token.
+            if matches!(
+                sequence.request.constraint,
+                Some(ConstraintSpec::JsonObject)
+            ) {
+                effective_sampling
+                    .bad_token_ids
+                    .extend(self.eos_token_ids.iter().copied());
             }
             let (token, alternatives) = sample(
                 &logits,

@@ -1,5 +1,8 @@
 #[cfg(feature = "native")]
 pub mod contrastive_lm;
+pub mod graph2text;
+#[cfg(feature = "server")]
+pub mod model_host;
 #[cfg(feature = "native")]
 pub mod native;
 #[cfg(feature = "native")]

@@ -22,8 +22,15 @@ name = "candlelighter"
 path = "src/main.rs"
 required-features = ["candle"]
 
+[[bin]]
+name = "lighter-serve"
+path = "src/serve.rs"
+required-features = ["server"]
+
 [features]
 default = ["candle", "native"]
+# OpenAI-compatible HTTP host for the native runtime.
+server = ["native", "dep:axum", "dep:tokio", "dep:tokio-stream", "dep:clap"]
 # The original Candle-backed training API.
 candle = [
     "dep:candle-core", "dep:candle-nn", "dep:candle-ext",
@@ -58,3 +65,16 @@ ureq = { version = "2.9", features = ["json"], optional = true }
 regex = { version = "1.10", optional = true }
 rayon = { version = "1.10", optional = true }
 image = { version = "0.25", default-features = false, features = ["png"], optional = true }
+
+axum = { version = "0.8", optional = true }
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "net", "signal", "sync", "time"], optional = true }
+tokio-stream = { version = "0.1", optional = true }
+clap = { version = "4", features = ["derive"], optional = true }
+
+[dev-dependencies]
+tower = { version = "0.5", features = ["util"] }
+
+[[example]]
+name = "graph2text_native"
+path = "examples/graph2text_native.rs"
+required-features = ["native"]

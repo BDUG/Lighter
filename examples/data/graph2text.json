@@ -1,0 +1,11 @@
+{
+  "nodes": [
+    {"id": "ada", "label": "Ada Lovelace", "properties": {"birth_year": 1815}},
+    {"id": "babbage", "label": "Charles Babbage"},
+    {"id": "engine", "label": "Analytical Engine", "properties": {"type": "mechanical computer"}}
+  ],
+  "edges": [
+    {"id": "notes", "source": "ada", "relation": "wrote notes about", "target": "engine", "properties": {"year": 1843}},
+    {"id": "design", "source": "babbage", "relation": "designed", "target": "engine"}
+  ]
+}
