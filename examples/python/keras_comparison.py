@@ -1,4 +1,4 @@
-"""Executable Keras 3 counterparts for docs/keras_comparison.md.
+"""Executable Keras 3 counterparts for docs/handbook.md#keras.
 
 Run with KERAS_BACKEND=jax python examples/python/keras_comparison.py.
 No downloaded models, credentials, or persistent output files are required.

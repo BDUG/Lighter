@@ -75,3 +75,14 @@ pub mod serializationtensor;
 pub mod topk;
 #[cfg(feature = "candle")]
 pub mod utils;
+
+#[cfg(feature = "native")]
+pub mod graph_training;
+
+#[cfg(feature = "native")]
+pub mod transformers;
+
+#[cfg(feature = "native")]
+pub mod arm;
+#[cfg(feature = "arm-npu")]
+pub mod arm_npu;

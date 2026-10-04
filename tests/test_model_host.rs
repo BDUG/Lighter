@@ -213,3 +213,170 @@ fn explicit_bos_chat_prompt_does_not_double_tokenizer_bos() {
     assert_eq!(backend.encode("hello").unwrap(), vec![4, 1]);
     assert_eq!(backend.encode("<bos>hello").unwrap(), vec![4, 1]);
 }
+
+#[test]
+fn graph_sft_adapter_updates_and_restores_on_native_models() {
+    use candlelighter::graph_training::*;
+    use candlelighter::native::NativeModel;
+    use candlelighter::native_training::*;
+    let fixture = Fixture::new();
+    let artifacts = HuggingFaceArtifacts::from_dir(&fixture.0).unwrap();
+    let tokenizer = tokenizers::Tokenizer::from_file(&artifacts.tokenizer).unwrap();
+    let tokens = answer_only_tokens(&tokenizer, "hello other", "other", Some(2), 32).unwrap();
+    for dtype in [
+        None,
+        Some(QuantizationType::Int4),
+        Some(QuantizationType::Int8),
+    ] {
+        let load = || match dtype {
+            None => NativeLlama::load(&artifacts).unwrap(),
+            Some(dtype) => NativeLlama::load_quantized(
+                &artifacts,
+                QuantizationConfig {
+                    dtype,
+                    group_size: 2,
+                },
+            )
+            .unwrap(),
+        };
+        let mut model = load();
+        model
+            .enable_lm_head_lora(
+                LoraConfig {
+                    rank: 2,
+                    alpha: 4.0,
+                    dropout: 0.0,
+                },
+                42,
+            )
+            .unwrap();
+        let before = model.lm_head_lora().unwrap().weights().1.to_vec();
+        let loss = supervised_fine_tune_step(
+            &mut model,
+            &tokens.input_ids,
+            &tokens.labels,
+            -100,
+            0.0,
+            1e-3,
+        )
+        .unwrap();
+        assert!(loss.is_finite());
+        assert_ne!(before, model.lm_head_lora().unwrap().weights().1);
+        let saved =
+            HeadAdapterCheckpoint::from_adapter("test-base".into(), model.lm_head_lora().unwrap());
+        let serialized = serde_json::to_string(&saved).unwrap();
+        let restored: HeadAdapterCheckpoint = serde_json::from_str(&serialized).unwrap();
+        let mut second = load();
+        second
+            .set_lm_head_lora(restored.into_adapter().unwrap())
+            .unwrap();
+        assert_eq!(
+            model.forward("a", &[1], 0).unwrap(),
+            second.forward("b", &[1], 0).unwrap()
+        );
+        let wrong = LoraAdapter::new(
+            3,
+            4,
+            LoraConfig {
+                rank: 2,
+                alpha: 4.0,
+                dropout: 0.0,
+            },
+            42,
+        )
+        .unwrap();
+        assert!(second.set_lm_head_lora(wrong).is_err());
+    }
+}
+
+#[test]
+fn native_transformers_pipeline_loads_once_and_generates_batch() {
+    use candlelighter::transformers::*;
+    let fixture = Fixture::new();
+    let source = fixture.0.to_str().unwrap();
+    let options = LoadOptions::default();
+    let mut pipeline = TextGenerationPipeline::from_pretrained(source, &options, 2).unwrap();
+    pipeline.generation_config.max_new_tokens = Some(3);
+    let outputs = pipeline
+        .generate(&["hello".into(), "hello other".into()], 42)
+        .unwrap();
+    assert_eq!(outputs.len(), 2);
+    assert_eq!(outputs[0].prompt_tokens, 1);
+    assert_eq!(outputs[1].prompt_tokens, 2);
+    assert!(outputs.iter().all(|r| r.token_ids.len() == 3));
+    assert_eq!(
+        pipeline.generate(&["hello".into()], 42).unwrap()[0].text,
+        outputs[0].text
+    );
+}
+
+#[tokio::test]
+async fn factory_keeps_non_send_backend_on_worker_thread() {
+    use candlelighter::model_host::router_with_backend_factory;
+    use candlelighter::native::{NativeBackend, NativeError, NativeResult};
+    use std::rc::Rc;
+    use tower::ServiceExt;
+    struct Affine {
+        thread: std::thread::ThreadId,
+        _not_send: Rc<()>,
+        dropped: std::sync::mpsc::Sender<std::thread::ThreadId>,
+    }
+    impl NativeBackend for Affine {
+        fn encode(&self, _: &str) -> NativeResult<Vec<u32>> {
+            assert_eq!(self.thread, std::thread::current().id());
+            Ok(vec![0])
+        }
+        fn decode(&self, _: &[u32]) -> NativeResult<String> {
+            assert_eq!(self.thread, std::thread::current().id());
+            Ok("answer".into())
+        }
+        fn logits(&mut self, _: &str, _: &[u32], _: usize) -> NativeResult<Vec<f32>> {
+            assert_eq!(self.thread, std::thread::current().id());
+            Ok(vec![0., 10.])
+        }
+    }
+    impl Drop for Affine {
+        fn drop(&mut self) {
+            assert_eq!(self.thread, std::thread::current().id());
+            let _ = self.dropped.send(self.thread);
+        }
+    }
+    let (tx, rx) = std::sync::mpsc::channel();
+    let caller = std::thread::current().id();
+    let app = router_with_backend_factory(
+        move || {
+            Ok(Affine {
+                thread: std::thread::current().id(),
+                _not_send: Rc::new(()),
+                dropped: tx,
+            })
+        },
+        vec![1],
+        HostConfig::default(),
+    )
+    .unwrap();
+    let response = app
+        .oneshot(
+            axum::http::Request::builder()
+                .uri("/v1/completions")
+                .method("POST")
+                .header("content-type", "application/json")
+                .body(axum::body::Body::from(
+                    r#"{"model":"lighter","prompt":"hello","max_tokens":1,"temperature":0}"#,
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), axum::http::StatusCode::OK);
+    drop(response);
+    // Wait outside the async executor so worker teardown can proceed independently.
+    let owner = rx.recv_timeout(Duration::from_secs(5)).unwrap();
+    assert_ne!(owner, caller);
+    let failed = router_with_backend_factory(
+        || Err::<Affine, _>(NativeError("delegate unavailable".into())),
+        vec![1],
+        HostConfig::default(),
+    );
+    assert!(failed.err().unwrap().0.contains("delegate unavailable"));
+}

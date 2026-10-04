@@ -1,0 +1,8 @@
+# Install CPU or CUDA torch separately using https://pytorch.org/get-started/locally/.
+torch>=2.4,<3
+torch-geometric>=2.6,<3
+transformers>=4.45,<5
+numpy>=1.26,<2
+pandas>=2.2,<3
+pcst-fast==1.0.10
+sentencepiece>=0.2,<1

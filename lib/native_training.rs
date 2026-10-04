@@ -2,7 +2,8 @@
 
 use crate::native::{NativeError, NativeResult};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct LoraConfig {
     pub rank: usize,
     pub alpha: f32,
@@ -11,7 +12,7 @@ pub struct LoraConfig {
 
 impl LoraConfig {
     pub fn validate(&self) -> NativeResult<()> {
-        if self.rank == 0 || self.alpha <= 0.0 || !(0.0..1.0).contains(&self.dropout) {
+        if self.rank == 0 || !self.alpha.is_finite() || self.alpha <= 0.0 || !(0.0..1.0).contains(&self.dropout) {
             return Err(NativeError("invalid LoRA rank, alpha, or dropout".into()));
         }
         Ok(())
@@ -154,6 +155,10 @@ impl LoraAdapter {
         }
         optimizer.update("lora_a", &mut self.a, &gradients.a)?;
         optimizer.update("lora_b", &mut self.b, &gradients.b)
+    }
+
+    pub fn config(&self) -> &LoraConfig {
+        &self.config
     }
 
     pub fn weights(&self) -> (&[f32], &[f32]) {

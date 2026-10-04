@@ -182,26 +182,53 @@ pub fn router<B: NativeBackend + Send + 'static>(
     eos: Vec<u32>,
     config: HostConfig,
 ) -> Result<Router, NativeError> {
+    router_with_backend_factory(move || Ok(backend), eos, config)
+}
+
+/// Construct and destroy a potentially thread-affine backend on the decode worker.
+/// Initialization errors are returned before the router is exposed to clients.
+pub fn router_with_backend_factory<F, B>(
+    factory: F,
+    eos: Vec<u32>,
+    config: HostConfig,
+) -> Result<Router, NativeError>
+where
+    F: FnOnce() -> Result<B, NativeError> + Send + 'static,
+    B: NativeBackend + 'static,
+{
     config.validate()?;
-    let engine = NativeEngine::new(backend, config.batch_size, eos)?;
     let (commands, receiver) = mpsc::channel(config.max_pending_requests);
     let metrics = Arc::new(Metrics::default());
-    metrics.ready.store(true, Ordering::Release);
     let state = HostState {
         config: Arc::new(config),
         commands,
         metrics,
         ids: Arc::new(AtomicU64::new(0)),
     };
-    let worker_state = state.clone();
-    // Do not retain a sender on the worker itself: otherwise shutdown never occurs.
-    let worker_config = worker_state.config.clone();
-    let worker_metrics = worker_state.metrics.clone();
-    drop(worker_state);
+    let worker_config = state.config.clone();
+    let worker_metrics = state.metrics.clone();
+    let (initialized, initialization) = std::sync::mpsc::sync_channel(1);
     std::thread::Builder::new()
         .name("lighter-decode".into())
-        .spawn(move || worker(engine, receiver, worker_config, worker_metrics))
+        .spawn(move || {
+            let result = factory()
+                .and_then(|backend| NativeEngine::new(backend, worker_config.batch_size, eos));
+            match result {
+                Ok(engine) => {
+                    worker_metrics.ready.store(true, Ordering::Release);
+                    if initialized.send(Ok(())).is_ok() {
+                        worker(engine, receiver, worker_config, worker_metrics);
+                    }
+                }
+                Err(error) => {
+                    let _ = initialized.send(Err(error));
+                }
+            }
+        })
         .map_err(|error| NativeError(format!("cannot start model worker: {error}")))?;
+    initialization
+        .recv()
+        .map_err(|_| NativeError("backend initialization worker stopped unexpectedly".into()))??;
     let api = Router::new()
         .route("/v1/models", get(models))
         .route("/v1/completions", post(completions))
@@ -316,6 +343,8 @@ struct ApiRequest {
     presence_penalty: Option<f32>,
     frequency_penalty: Option<f32>,
     repetition_penalty: Option<f32>,
+    no_repeat_ngram_size: Option<usize>,
+    bad_words_ids: Option<Vec<Vec<u32>>>,
     stop: Option<Stop>,
     n: Option<usize>,
     #[serde(default)]
@@ -457,6 +486,8 @@ fn prepare(
         presence_penalty: request.presence_penalty.unwrap_or(0.),
         frequency_penalty: request.frequency_penalty.unwrap_or(0.),
         repetition_penalty: request.repetition_penalty.unwrap_or(1.),
+        no_repeat_ngram_size: request.no_repeat_ngram_size.unwrap_or(0),
+        bad_words_ids: request.bad_words_ids.unwrap_or_default(),
         stop: match request.stop {
             None => vec![],
             Some(Stop::One(s)) => vec![s],

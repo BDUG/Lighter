@@ -79,6 +79,15 @@ impl HuggingFaceConfig {
             .map_err(|e| NativeError(format!("invalid Hugging Face config: {e}")))
     }
 
+    /// Writes config.json; this exports configuration, not model weights.
+    pub fn save_pretrained(&self, directory: impl AsRef<Path>) -> NativeResult<()> {
+        fs::create_dir_all(&directory).map_err(|error| NativeError(error.to_string()))?;
+        let json =
+            serde_json::to_vec_pretty(self).map_err(|error| NativeError(error.to_string()))?;
+        fs::write(directory.as_ref().join("config.json"), json)
+            .map_err(|error| NativeError(error.to_string()))
+    }
+
     pub fn eos_token_ids(&self) -> Vec<u32> {
         match &self.eos_token_id {
             Some(TokenIds::One(id)) => vec![*id],
@@ -250,7 +259,7 @@ impl HuggingFaceArtifacts {
     }
 }
 
-fn download_hub_file(
+pub(crate) fn download_hub_file(
     model_id: &str,
     revision: &str,
     filename: &str,
@@ -349,6 +358,8 @@ pub struct SamplingParams {
     pub stop: Vec<String>,
     pub include_stop_str_in_output: bool,
     pub bad_token_ids: Vec<u32>,
+    pub bad_words_ids: Vec<Vec<u32>>,
+    pub no_repeat_ngram_size: usize,
     pub logit_bias: HashMap<u32, f32>,
     pub ignore_eos: bool,
     pub logprobs: Option<usize>,
@@ -371,6 +382,8 @@ impl Default for SamplingParams {
             stop: Vec::new(),
             include_stop_str_in_output: false,
             bad_token_ids: Vec::new(),
+            bad_words_ids: Vec::new(),
+            no_repeat_ngram_size: 0,
             logit_bias: HashMap::new(),
             ignore_eos: false,
             logprobs: None,
@@ -385,6 +398,24 @@ impl SamplingParams {
         }
         if self.min_tokens > self.max_tokens {
             return Err(NativeError("min_tokens cannot exceed max_tokens".into()));
+        }
+        if [
+            self.temperature,
+            self.top_p,
+            self.min_p,
+            self.frequency_penalty,
+            self.presence_penalty,
+            self.repetition_penalty,
+        ]
+        .iter()
+        .any(|value| !value.is_finite())
+        {
+            return Err(NativeError("sampling values must be finite".into()));
+        }
+        if self.bad_words_ids.iter().any(Vec::is_empty) {
+            return Err(NativeError(
+                "bad_words_ids sequences cannot be empty".into(),
+            ));
         }
         if self.temperature < 0.0 {
             return Err(NativeError("temperature cannot be negative".into()));
@@ -516,7 +547,7 @@ impl<M> HuggingFaceBackend<M> {
     }
 }
 
-fn load_tokenizer(path: &Path) -> NativeResult<tokenizers::Tokenizer> {
+pub(crate) fn load_tokenizer(path: &Path) -> NativeResult<tokenizers::Tokenizer> {
     let bytes = fs::read(path)
         .map_err(|e| NativeError(format!("cannot read tokenizer {}: {e}", path.display())))?;
     match tokenizers::Tokenizer::from_bytes(&bytes) {
@@ -908,6 +939,29 @@ fn mask_constrained_logits<B: NativeBackend>(
     Ok(masked)
 }
 
+fn blocked_history_tokens(history: &[u32], p: &SamplingParams) -> std::collections::HashSet<u32> {
+    let mut blocked = std::collections::HashSet::new();
+    for word in &p.bad_words_ids {
+        if let Some((&last, prefix)) = word.split_last() {
+            if history.ends_with(prefix) {
+                blocked.insert(last);
+            }
+        }
+    }
+    let n = p.no_repeat_ngram_size;
+    if n == 1 {
+        blocked.extend(history.iter().copied());
+    } else if n > 1 && history.len() >= n {
+        let suffix = &history[history.len() - (n - 1)..];
+        for window in history.windows(n) {
+            if &window[..n - 1] == suffix {
+                blocked.insert(window[n - 1]);
+            }
+        }
+    }
+    blocked
+}
+
 fn sample(
     logits: &[f32],
     history: &[u32],
@@ -924,13 +978,14 @@ fn sample(
     for &token in history {
         *counts.entry(token).or_default() += 1;
     }
+    let blocked = blocked_history_tokens(history, p);
     let mut scores: Vec<(u32, f32)> = logits
         .iter()
         .copied()
         .enumerate()
         .map(|(id, mut score)| {
             score += p.logit_bias.get(&(id as u32)).copied().unwrap_or(0.0);
-            if p.bad_token_ids.contains(&(id as u32)) {
+            if p.bad_token_ids.contains(&(id as u32)) || blocked.contains(&(id as u32)) {
                 return (id as u32, f32::NEG_INFINITY);
             }
             let count = counts.get(&(id as u32)).copied().unwrap_or(0);
@@ -1255,5 +1310,105 @@ mod tests {
         let response = engine.run_to_completion().unwrap().remove(0);
         assert_eq!(response.text, "ok");
         assert_eq!(response.finish_reason, FinishReason::Stop);
+    }
+}
+
+#[cfg(test)]
+mod transformers_decoding_tests {
+    use super::*;
+    #[test]
+    fn ngram_blocking_uses_prompt_and_generated_history() {
+        let p = SamplingParams {
+            no_repeat_ngram_size: 2,
+            temperature: 0.0,
+            ..Default::default()
+        };
+        assert_eq!(
+            blocked_history_tokens(&[0, 1, 0], &p),
+            std::collections::HashSet::from([1])
+        );
+        assert_eq!(
+            sample(
+                &[1., 10., 0.],
+                &[0, 1, 0],
+                &p,
+                &mut StdRng::seed_from_u64(1)
+            )
+            .unwrap()
+            .0,
+            0
+        );
+        let p = SamplingParams {
+            no_repeat_ngram_size: 1,
+            temperature: 0.0,
+            ..Default::default()
+        };
+        assert_eq!(
+            sample(&[10., 9., 8.], &[0, 1], &p, &mut StdRng::seed_from_u64(1))
+                .unwrap()
+                .0,
+            2
+        );
+        let p = SamplingParams {
+            no_repeat_ngram_size: usize::MAX,
+            ..Default::default()
+        };
+        assert!(blocked_history_tokens(&[0, 1], &p).is_empty());
+    }
+    #[test]
+    fn multi_token_bad_words_block_only_when_prefix_matches() {
+        let p = SamplingParams {
+            bad_words_ids: vec![vec![0, 2], vec![1]],
+            temperature: 0.0,
+            ..Default::default()
+        };
+        assert_eq!(
+            blocked_history_tokens(&[0], &p),
+            std::collections::HashSet::from([1, 2])
+        );
+        assert_eq!(
+            sample(&[0., 9., 10.], &[0], &p, &mut StdRng::seed_from_u64(1))
+                .unwrap()
+                .0,
+            0
+        );
+        assert_eq!(
+            sample(&[0., 9., 10.], &[3], &p, &mut StdRng::seed_from_u64(1))
+                .unwrap()
+                .0,
+            2
+        );
+        let p = SamplingParams {
+            bad_words_ids: vec![vec![0, 3, 2]],
+            ..Default::default()
+        };
+        assert!(blocked_history_tokens(&[0], &p).is_empty());
+        assert!(blocked_history_tokens(&[4, 0, 3], &p).contains(&2));
+    }
+    #[test]
+    fn constraints_and_nonfinite_sampling_fail_explicitly() {
+        let p = SamplingParams {
+            no_repeat_ngram_size: 1,
+            ..Default::default()
+        };
+        assert!(sample(&[1., 1.], &[0, 1], &p, &mut StdRng::seed_from_u64(1)).is_err());
+        assert!(SamplingParams {
+            temperature: f32::NAN,
+            ..Default::default()
+        }
+        .validate()
+        .is_err());
+        assert!(SamplingParams {
+            repetition_penalty: f32::INFINITY,
+            ..Default::default()
+        }
+        .validate()
+        .is_err());
+        assert!(SamplingParams {
+            bad_words_ids: vec![vec![]],
+            ..Default::default()
+        }
+        .validate()
+        .is_err());
     }
 }
